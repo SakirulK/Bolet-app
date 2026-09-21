@@ -90,7 +90,7 @@ test('settings, keyboard, reduced motion, short gestures and early finish', asyn
   await page.getByRole('button', { name: 'Study settings' }).tap();
   await page.getByLabel('Shuffle cards (off = normal order)').check();
   await page.getByLabel('Card direction').selectOption('definition');
-  await page.getByLabel('Content', { exact: true }).selectOption('terms');
+  await page.getByRole('combobox', { name: 'Content', exact: true }).selectOption('terms');
   await page.getByRole('button', { name: 'Apply & restart' }).tap();
   await expect(page.getByTestId('flashcard')).toHaveAttribute('aria-label', /Definition: Central Processing Unit/);
   await metric(page, 'Remaining', '1');
@@ -127,7 +127,7 @@ test('landscape, empty starred selection, random direction and mouse click', asy
   await page.getByRole('button', { name: 'Unstar term' }).tap();
   await expect(page.getByRole('button', { name: 'Star term', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Study settings' }).tap();
-  await page.getByLabel('Content', { exact: true }).selectOption('terms');
+  await page.getByRole('combobox', { name: 'Content', exact: true }).selectOption('terms');
   await page.getByRole('button', { name: 'Apply & restart' }).tap();
   await expect(page.getByRole('heading', { name: 'No starred terms in this deck yet.' })).toBeVisible();
   await page.getByRole('button', { name: 'Study all cards' }).tap();

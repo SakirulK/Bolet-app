@@ -4,6 +4,10 @@ export type Card = {
   term: string;
   definition: string;
   notes?: string;
+  /** Explicit aliases for the definition; absent on older cards. */
+  acceptedAnswers?: string[];
+  /** Explicit aliases for the term when answering in reverse. */
+  acceptedTermAnswers?: string[];
   position?: number;
   /** Kept only for backwards-compatible backups; never used for new star controls. */
   starred?: boolean;
@@ -57,7 +61,7 @@ export type CreateDeckInput = {
   subject: string;
 };
 
-export type CardInput = { id?: string; term: string; definition: string };
+export type CardInput = { id?: string; term: string; definition: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[] };
 export type DeckInput = CreateDeckInput & { cards: CardInput[] };
 
 export type MasteryLevel = "New" | "Learning" | "Familiar" | "Mastered";

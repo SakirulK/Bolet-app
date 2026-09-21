@@ -15,11 +15,11 @@ export function calculateSimilarity(a: string, b: string): number {
   }
   return 1 - row[b.length] / Math.max(a.length, b.length);
 }
-export function gradeWrittenAnswer(answer: string, expected: string, smart = false): boolean {
+export function gradeSpelling(answer: string, expected: string, allowMinorSpellingMistakes = false): boolean {
   const a = normalizeAnswer(answer), b = normalizeAnswer(expected);
   if (!a || !b) return false;
   if (a === b) return true;
-  if (!smart || b.length < 5 || a.split(" ").length !== b.split(" ").length) return false;
+  if (!allowMinorSpellingMistakes || b.length < 5 || a.split(" ").length !== b.split(" ").length) return false;
   // Never blur numbers, negation, or operators. Allow at most one typo per long word,
   // and at most two across an entire answer; short words must be exact.
   if ((a.match(/\d+|[+−=<>/-]|\b(?:not|no|never)\b/g) ?? []).join() !== (b.match(/\d+|[+−=<>/-]|\b(?:not|no|never)\b/g) ?? []).join()) return false;
@@ -33,4 +33,21 @@ export function gradeWrittenAnswer(answer: string, expected: string, smart = fal
     edits += distance;
   }
   return edits <= 2 && calculateSimilarity(a, b) >= 0.85;
+}
+
+export type GradingOptions = {
+  smartGrading?: boolean;
+  allowMinorSpellingMistakes?: boolean;
+  /** Explicit, author-provided aliases for the expected side, never inferred. */
+  acceptedAnswers?: readonly string[];
+};
+/** Smart grading recognizes only explicitly supplied alternative answer forms.
+ * It does not infer abbreviations, synonyms, or optional parts of a definition. */
+export function gradeSmartAnswer(answer: string, expected: string, acceptedAnswers: readonly string[] = [], allowMinorSpellingMistakes = false): boolean {
+  return [expected, ...acceptedAnswers].some(candidate => gradeSpelling(answer, candidate, allowMinorSpellingMistakes));
+}
+export function gradeWrittenAnswer(answer: string, expected: string, options: GradingOptions = {}): boolean {
+  return options.smartGrading
+    ? gradeSmartAnswer(answer, expected, options.acceptedAnswers, options.allowMinorSpellingMistakes)
+    : gradeSpelling(answer, expected, options.allowMinorSpellingMistakes);
 }

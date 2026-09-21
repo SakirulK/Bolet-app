@@ -12,7 +12,7 @@ npm run start
 npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000). On iPad Safari: Share → Add to Home Screen for standalone PWA chrome (offline caching comes later).
+Open [http://localhost:3000](http://localhost:3000). On iPad Safari: Share → Add to Home Screen for standalone PWA chrome (see Settings → Install BOLET for offline readiness).
 
 ## Flashcards
 
@@ -34,5 +34,29 @@ through the BOLET rename.
 - `npm run typecheck`
 - `npm run lint`
 - `npm test` — imports, exports, deck persistence, and study scheduling/statistics
-- `npm run build -- --webpack` — production build when Turbopack workers are restricted
+- `npm run build` — production build when Turbopack workers are restricted
 - `npm run test:e2e` — production browser tests using installed Google Chrome with iPad touch emulation; build first. The tests start their own server on port 3100.
+
+## Learn grading and rounds
+
+Learn and Test share deterministic, local grading utilities. Basic grading ignores
+capitalization, extra whitespace, and harmless punctuation. **Allow minor spelling
+mistakes** enables conservative typo matching; it does not enable aliases.
+**Smart Grading** accepts explicit aliases entered under a card’s optional accepted
+answers. Definition aliases and term aliases are separate. No synonyms,
+abbreviations, or paraphrases are inferred. To accept an optional parenthetical
+form, add that exact form as an alias.
+
+Learn offers **I was correct** only after an automatically rejected written answer.
+The final override is saved when continuing and replaces the rejection in both
+statistics and scheduling. Don’t Know cannot be overridden. Retyping alone does
+not change a result. Both sides can be starred on the feedback screen.
+
+Every selected round contains questions. Confident cards receive less practice;
+when all cards are confident, a rotating maintenance card keeps intermediate
+rounds meaningful. The final round checks the selected set. Misses get one later
+retry per round, preventing an endless loop while preserving difficult material
+for further study.
+
+Migration tests cover version 1 and 2 databases. Optional accepted-answer fields
+need no schema change and do not overwrite older cards or their study history.

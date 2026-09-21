@@ -1,6 +1,6 @@
-/* global self, caches, __VERSION__, __ASSETS__ */
-const CACHE = 'bolet-' + __VERSION__;
-const ASSETS = __ASSETS__;
+/* global self, caches */
+const CACHE = 'bolet-' + /* BUILD_VERSION */ '';
+const ASSETS = /* PRECACHE_ASSETS */ [];
 self.addEventListener('install', event => {
   // Installation is atomic: never advertise offline readiness for a partial bundle.
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));

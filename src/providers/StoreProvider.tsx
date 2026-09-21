@@ -197,8 +197,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await db.transaction("rw", db.cards, async () => {
       const card = await db.cards.get(cardId);
       if (!card) throw new Error("This card was deleted.");
-      const key = side === "term" ? "termStarred" : "definitionStarred";
-      await db.cards.update(cardId, { [key]: !card[key], updatedAt: Date.now() });
+      await db.cards.update(cardId, side === "term" ? { termStarred: !card.termStarred, updatedAt: Date.now() } : { definitionStarred: !card.definitionStarred, updatedAt: Date.now() });
     });
     await refresh();
   }, [refresh]);

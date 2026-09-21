@@ -1,6 +1,6 @@
 "use client";
 import { LocalLink } from "@/components/ui/LocalLink";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { filterCards, emptyContent, shuffled, studyUrl, type ContentFilter, type Side } from "@/lib/learning/content";
 import { newHistory, commitAttempts } from "@/data/history";
@@ -24,7 +24,7 @@ export function MatchMode({ deck, initialFilter = "all" }: { deck: Deck; initial
     setGame({ tiles: shuffled(tiles), history: newHistory(deck.id, deck.title, "match"), pairs: cards.length, removed: [], selected: null, done: false });
     setFeedback(""); setError(""); started.current = Date.now();
   }
-  async function handleSelect(tile: Tile) {
+  const handleSelect = useCallback(async (tile: Tile) => {
     if (!game || lock.current || game.done) return;
     if (!game.selected) { setGame({ ...game, selected: tile.id }); return; }
     if (game.selected === tile.id) { setGame({ ...game, selected: null }); return; }
@@ -42,7 +42,7 @@ export function MatchMode({ deck, initialFilter = "all" }: { deck: Deck; initial
       setGame({ ...game, removed, selected: null, done, history }); started.current = Date.now();
     } catch { setError("Could not save this attempt. Try the pair again."); }
     finally { lock.current = false; setBusy(false); }
-  }
+  }, [game, deck]);
   if (!game) return <div className="mx-auto max-w-2xl space-y-6"><header><p className="text-sm text-accent">{deck.title}</p><h1 className="font-display text-3xl">Set up Match</h1><p className="mt-2 text-muted">Tap a term, then its definition. No dragging needed.</p></header><Section title="Content"><ContentSelect value={filter} onChange={setFilter} /></Section><Section title="Number of pairs"><label className="block text-sm">Pairs<select className={fieldClass} value={Number(pairs) > eligible.length ? "all" : pairs} onChange={e => setPairs(e.target.value)}>{[6, 8, 10].filter(n => n <= eligible.length).map(n => <option key={n} value={n}>{n}</option>)}<option value="all">All ({eligible.length})</option></select></label></Section><Toggle label="Shuffle" value={shuffle} onChange={setShuffle} />{!eligible.length && <p role="status">{emptyContent(filter)}</p>}<div className="flex gap-3"><Button size="lg" disabled={!eligible.length} onClick={start}>Start Match</Button><LocalLink className="study-link" href={`/library/${deck.id}`}>Back to Deck</LocalLink></div></div>;
   if (game.done) { const attempts = game.history.correct + game.history.incorrect; return <div className="mx-auto max-w-3xl space-y-6"><h1 className="font-display text-3xl">All pairs matched</h1><Metrics values={[["Completion time", durationLabel(game.history.durationMs)], ["Mistakes", game.history.incorrect], ["Pairs", game.pairs], ["Accuracy", `${Math.round(game.history.correct / attempts * 100)}%`]]} /><div className="flex flex-wrap gap-3"><Button onClick={start}>Play Again</Button><LocalLink className="study-link" href={studyUrl(deck.id, "match", undefined, "any")}>Play Starred</LocalLink>{game.history.difficultIds.length > 0 && <LocalLink className="study-link" href={studyUrl(deck.id, "learn", game.history.difficultIds)}>Study Missed / Difficult</LocalLink>}<LocalLink className="study-link" href={`/library/${deck.id}`}>Back to Deck</LocalLink></div></div>; }
   return <div className="space-y-5"><header className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-accent">{deck.title}</p><h1 className="font-display text-3xl">Match</h1></div><LocalLink className="study-link" href={`/library/${deck.id}`}>Back to Deck</LocalLink></header><Metrics values={[["Remaining pairs", game.pairs - game.removed.length / 2], ["Mistakes", game.history.incorrect], ["Time", durationLabel(elapsed)]]} /><p role="status" className="min-h-6 text-sm text-muted">{feedback || "Choose two tiles that belong together."}</p>

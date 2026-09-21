@@ -50,6 +50,7 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
             <Button variant="ghost" size="icon" aria-label={`Delete card ${index + 1}`} onClick={() => setCards(current => current.filter(item => item.key !== card.key))}><Trash2 size={18} /></Button>
           </div></div>
           <div className="grid gap-3 sm:grid-cols-2">{(["term", "definition"] as const).map(name => <label key={name} className="text-sm capitalize">{name}<textarea required rows={3} className={field} value={card[name]} onChange={event => setCards(current => current.map(item => item.key === card.key ? { ...item, [name]: event.target.value } : item))} /></label>)}</div>
+          <details className="mt-3"><summary className="min-h-11 cursor-pointer py-3 text-sm text-muted">Accepted answers (optional)</summary><p className="mb-3 text-sm text-muted">One explicit alias per line. Used only when Smart Grading is on.</p><div className="grid gap-3 sm:grid-cols-2">{(["acceptedTermAnswers", "acceptedAnswers"] as const).map(name => <label key={name} className="text-sm">{name === "acceptedAnswers" ? "Accepted definition answers" : "Accepted term answers"}<textarea rows={2} className={field} value={(card[name] ?? []).join("\n")} onChange={event => setCards(current => current.map(item => item.key === card.key ? { ...item, [name]: event.target.value.split("\n") } : item))} /></label>)}</div></details>
         </div>)}
         <Button variant="secondary" onClick={() => append([{ term: "", definition: "" }])}><Plus size={18} />Add card</Button>
       </fieldset>

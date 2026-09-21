@@ -7,5 +7,5 @@ async function files(dir) {
 const assets = (await files('.next/static')).filter(path => /\.(js|css|woff2?)$/.test(path)).map(path => path.replace('.next/', '/_next/'));
 const routes = ['/', '/library', '/study', '/progress', '/settings', '/practice', '/review', '/install', '/offline', '/manifest.webmanifest', '/icon.svg', '/icon-192.png', '/icon-512.png'];
 const template = await readFile('scripts/sw-template.js', 'utf8');
-await writeFile('public/sw.js', template.replace('__VERSION__', JSON.stringify(version)).replace('__ASSETS__', JSON.stringify([...routes, ...assets])));
+await writeFile('public/sw.js', template.replace("/* BUILD_VERSION */ ''", JSON.stringify(version)).replace("/* PRECACHE_ASSETS */ []", JSON.stringify([...routes, ...assets])));
 console.log(`Offline bundle: ${assets.length} assets and ${routes.length} routes.`);

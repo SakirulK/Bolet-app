@@ -10,7 +10,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-edge bg-surface lg:flex">
+    <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-edge bg-surface lg:sticky lg:top-0 lg:flex lg:self-start">
       <div className="flex h-16 items-center px-5">
         <Link
           href="/"

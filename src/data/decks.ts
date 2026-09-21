@@ -20,6 +20,8 @@ export async function saveDeck(input: DeckInput, deckId?: string) {
         nextReviewAt: now, reviewCount: 0, correctStreak: 0, incorrectCount: 0, dontKnowCount: 0, masteryLevel: "New",
         createdAt: now, mastery: 0, ease: 2.5, intervalDays: 0,
         repetitions: 0, dueAt: now, ...old,
+        acceptedAnswers: (draft.acceptedAnswers ?? old?.acceptedAnswers)?.map(answer => answer.trim()).filter(Boolean),
+        acceptedTermAnswers: (draft.acceptedTermAnswers ?? old?.acceptedTermAnswers)?.map(answer => answer.trim()).filter(Boolean),
         term: draft.term.trim(), definition: draft.definition.trim(), position, updatedAt: now,
       };
     });
