@@ -74,8 +74,8 @@ export function HomeDashboard() {
             Ready when you are, {prefs.displayName}.
           </h1>
           <p className="mt-2 max-w-xl text-base leading-7 text-muted">
-            Pick up a deck, keep the streak, or start something new. Everything
-            stays on this device.
+            Pick up a deck, keep the streak, or start something new. Your decks
+            are available offline, with optional account sync.
           </p>
         </div>
         <Button size="lg" onClick={() => setCreateOpen(true)}>

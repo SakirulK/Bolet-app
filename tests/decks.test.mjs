@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { load } from './load-ts.mjs';
 globalThis.window = {};
 const { parseCards, exportDeck } = load('src/lib/deck-transfer.ts');
-const { saveDeck, removeDeck } = load('src/data/decks.ts');
+const { saveDeck, removeDeck, restoreDeck, permanentlyDeleteDeck } = load('src/data/decks.ts');
 const { getDb } = load('src/lib/db.ts');
 
 test('imports all delimiters, CRLF, Unicode, headers, and quoted multiline CSV', () => {
@@ -22,32 +22,38 @@ test('imports all delimiters, CRLF, Unicode, headers, and quoted multiline CSV',
   assert.equal(parseCards('\n \n', 'auto').cards.length, 0);
 });
 
-test('deck edits persist order and mastery, reject invalid input, and cascade deletion', async () => {
+test('deck edits persist order and mastery, reject invalid input, and deliberate tombstone deletion', async () => {
   const db = getDb();
   const input = { title: ' Basics ', subject: '', description: ' Notes ', cards: [{ term: 'A', definition: 'First' }, { term: 'B', definition: 'Second' }] };
   const id = await saveDeck(input);
   const old = (await db.cards.where('deckId').equals(id).toArray()).sort((a, b) => a.position - b.position);
   await db.cards.update(old[1].id, { mastery: 72, termStarred: true });
-  await saveDeck({ ...input, title: 'Edited', cards: [{ ...old[1], definition: 'Updated' }, { term: 'C', definition: 'Third' }] }, id);
+  await saveDeck({ ...input, title: 'Edited', removedCardIds: [old[0].id], cards: [{ ...old[1], definition: 'Updated' }, { term: 'C', definition: 'Third' }] }, id);
   db.close(); await db.open();
-  const cards = (await db.cards.where('deckId').equals(id).toArray()).sort((a, b) => a.position - b.position);
+  const cards = (await db.cards.where('deckId').equals(id).toArray()).filter(card => !card.deletedAt).sort((a, b) => a.position - b.position);
   assert.deepEqual(cards.map(card => card.term), ['B', 'C']);
   assert.equal(cards[0].mastery, 72);
   assert.equal(cards[0].termStarred, true);
   assert.equal(cards[0].definition, 'Updated');
-  assert.equal(await db.cards.get(old[0].id), undefined);
+  assert.ok((await db.cards.get(old[0].id)).deletedAt);
+  assert.equal((await db.cards.get(old[0].id)).term, "A");
   assert.equal((await db.decks.get(id)).subject, 'Unsorted');
   await assert.rejects(saveDeck({ ...input, cards: [{ term: '', definition: 'Invalid' }] }, id));
   assert.equal((await db.decks.get(id)).title, 'Edited');
   const otherId = await saveDeck({ ...input, cards: [] });
   await removeDeck(id);
-  assert.equal(await db.decks.get(id), undefined);
-  assert.equal(await db.cards.where('deckId').equals(id).count(), 0);
+  assert.ok((await db.decks.get(id)).deletedAt);
+  assert.equal(await db.cards.where('deckId').equals(id).count(), 3);
   assert.ok(await db.decks.get(otherId));
   await assert.rejects(saveDeck(input, id), /deleted/);
+  await restoreDeck(id);
+  assert.equal((await db.decks.get(id)).deletedAt, null);
+  await removeDeck(id); await permanentlyDeleteDeck(id);
+  assert.ok((await db.decks.get(id)).purgedAt);
+  assert.equal((await db.decks.get(id)).title, undefined);
   await removeDeck(otherId);
   db.close(); await db.open();
-  assert.equal(await db.decks.count(), 0);
+  assert.equal(await db.decks.filter(deck => !deck.deletedAt).count(), 0);
   await db.delete();
 });
 

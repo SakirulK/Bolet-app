@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { SyncStatus } from "@/components/layout/SyncStatus";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -22,6 +23,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           id="main"
           className={studying ? "mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pt-6" : "mx-auto w-full max-w-6xl flex-1 px-4 pt-5 pb-28 sm:px-6 sm:pt-8 lg:px-10 lg:pb-10"}
         >
+          {!studying && <SyncStatus />}
           {children}
         </main>
         {!studying && <BottomNav />}

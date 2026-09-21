@@ -69,7 +69,8 @@ test('answers persist atomically, duplicate requests count once, and session his
   assert.equal(sessionStats(incomplete).remaining, 1);
   assert.equal((await recordAnswer(incomplete, true)).revision, incomplete.revision);
   await removeDeck(id);
-  assert.equal(await db.sessions.where('deckId').equals(id).count(), 0);
+  assert.equal(await db.sessions.where('deckId').equals(id).count(), 2);
+  assert.equal((await db.cards.get(cards[0].id)).reviewCount, 4);
   await assert.rejects(recordAnswer(startSession(id, cards, defaultStudyOptions), true), /deleted/);
   assert.equal((await db.activity.toArray())[0].cardsStudied, 4);
   await db.delete();

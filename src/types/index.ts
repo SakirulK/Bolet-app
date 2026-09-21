@@ -1,9 +1,13 @@
-export type Card = {
+export type DurableRecord = { deletedAt?: number | null; purgedAt?: number };
+
+export type Card = DurableRecord & {
   id: string;
   deckId: string;
   term: string;
   definition: string;
   notes?: string;
+  /** Scheduling snapshot before event-based cloud reconciliation. */
+  _reviewBase?: { card: Record<string, unknown>; eventIds: string[] };
   /** Explicit aliases for the definition; absent on older cards. */
   acceptedAnswers?: string[];
   /** Explicit aliases for the term when answering in reverse. */
@@ -30,7 +34,7 @@ export type Card = {
   dueAt: number;
 };
 
-export type Deck = {
+export type Deck = DurableRecord & {
   id: string;
   title: string;
   description: string;
@@ -51,6 +55,7 @@ export type DailyActivity = {
 
 export type Prefs = {
   id: "local";
+  theme?: "system" | "light" | "dark";
   dailyGoal: number;
   displayName: string;
 };
@@ -61,8 +66,8 @@ export type CreateDeckInput = {
   subject: string;
 };
 
-export type CardInput = { id?: string; term: string; definition: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[] };
-export type DeckInput = CreateDeckInput & { cards: CardInput[] };
+export type CardInput = { original?: { term: string; definition: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[]; position?: number }; id?: string; term: string; definition: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[] };
+export type DeckInput = CreateDeckInput & { cards: CardInput[]; original?: CreateDeckInput; removedCardIds?: string[] };
 
 export type MasteryLevel = "New" | "Learning" | "Familiar" | "Mastered";
 export type StudyMode = "flashcards" | "learn" | "match" | "test" | "review";

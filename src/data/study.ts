@@ -9,7 +9,7 @@ export async function recordAnswer(session: Session, known: boolean): Promise<Se
     const stored = await db.sessions.get(session.id);
     if (stored && stored.revision > session.revision) return stored;
     const card = await db.cards.get(session.queue[0]);
-    if (!card || !(await db.decks.get(session.deckId))) throw new Error("This card or deck was deleted. Return to your deck to start a new session.");
+    if (!card || card.deletedAt || card.purgedAt || !(await db.decks.get(session.deckId)) || (await db.decks.get(session.deckId))?.deletedAt) throw new Error("This card or deck was deleted. Return to your deck to start a new session.");
     const now = Date.now();
     const next = answerSession(session, known, now);
     if (next === session) return session;

@@ -1,6 +1,9 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { createContext, useEffect, useCallback, useContext, useMemo, useSyncExternalStore, type ReactNode } from "react";
+import { getDb } from "@/lib/db";
+import { updatePrefs } from "@/data/preferences";
+import { liveQuery } from "dexie";
 import {
   applyTheme,
   getSystemDark,
@@ -43,6 +46,14 @@ function getResolvedSnapshot(): "light" | "dark" {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const sub = liveQuery(() => getDb().prefs.get('local')).subscribe(prefs => {
+      if (prefs?.theme && prefs.theme !== readStoredTheme()) {
+        localStorage.setItem(THEME_STORAGE_KEY, prefs.theme); applyTheme(prefs.theme); window.dispatchEvent(new Event(THEME_EVENT));
+      }
+    });
+    return () => sub.unsubscribe();
+  }, []);
   const preference = useSyncExternalStore(
     subscribe,
     getPreferenceSnapshot,
@@ -56,6 +67,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setPreference = useCallback((value: ThemePreference) => {
     localStorage.setItem(THEME_STORAGE_KEY, value);
+    void updatePrefs({ theme: value });
     applyTheme(value);
     window.dispatchEvent(new Event(THEME_EVENT));
   }, []);

@@ -45,3 +45,6 @@ next-env.d.ts
 /playwright-report/
 
 /public/sw.js
+
+# Public configuration template only; real credentials stay ignored.
+!.env.example

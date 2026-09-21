@@ -1,6 +1,6 @@
 # BOLET
 
-Local-first study app for decks and flashcards. Data stays in your browser via IndexedDB (Dexie). No account, no paid APIs.
+Local-first study app for decks and flashcards. Data is saved immediately in IndexedDB (Dexie), with optional Supabase account sync and full local backups. No paid APIs.
 
 ## Scripts
 
@@ -35,7 +35,7 @@ through the BOLET rename.
 - `npm run lint`
 - `npm test` — imports, exports, deck persistence, and study scheduling/statistics
 - `npm run build` — production build when Turbopack workers are restricted
-- `npm run test:e2e` — production browser tests using installed Google Chrome with iPad touch emulation; build first. The tests start their own server on port 3100.
+- `npm run test:e2e` — production browser tests using installed Google Chrome with iPad touch emulation; build first. The tests start their own production server on port 3100 and a separate development server on port 3101 for mocked cloud integration.
 
 ## Learn grading and rounds
 
@@ -60,3 +60,5 @@ for further study.
 
 Migration tests cover version 1 and 2 databases. Optional accepted-answer fields
 need no schema change and do not overwrite older cards or their study history.
+
+Account sync, Trash and full backups are documented in [Data durability & Supabase setup](docs/DATA-DURABILITY.md). Use Node 22+; copy the public configuration names from `.env.example`. The app continues to work locally when Supabase is not configured.

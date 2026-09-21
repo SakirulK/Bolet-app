@@ -39,3 +39,14 @@ test('optional aliases persist without replacing stars or mastery', async () => 
   assert.deepEqual(saved.acceptedAnswers, ['Processor']); assert.equal(saved.termStarred, true); assert.equal(saved.mastery, 70);
   await db.delete();
 });
+test('v3 to v4 adds outbox without changing current IDs, aliases, preferences or history', async () => {
+  const old = new Dexie('durability-upgrade');
+  old.version(3).stores({decks:'id, subject, favorite, updatedAt, lastStudiedAt',cards:'id, deckId, dueAt, nextReviewAt, masteryLevel',activity:'date',prefs:'id',sessions:'id, deckId, startedAt, endedAt',history:'id, deckId, mode, startedAt',events:'id, sessionId, cardId, deckId, at'});
+  const card={id:'original-card',deckId:'original-deck',term:'CPU',definition:'Processor',termStarred:true,definitionStarred:false,acceptedAnswers:['Central Processing Unit'],reviewCount:18,mastery:90,intervalDays:40,correctStreak:7,nextReviewAt:1234};
+  await old.table('cards').put(card); await old.table('decks').put({id:'original-deck',title:'Preserve'});
+  await old.table('prefs').put({id:'local',displayName:'Keep name',dailyGoal:60});await old.table('history').put({id:'history',correct:17});
+  old.close();const current=new RecallDB('durability-upgrade');await current.open();
+  assert.deepEqual(await current.cards.get(card.id),card);assert.equal((await current.prefs.get('local')).dailyGoal,60);assert.equal((await current.history.get('history')).correct,17);
+  assert.equal(current.verno,4);await current.cards.update(card.id,{definitionStarred:true});assert.equal(await current.syncQueue.count(),1);
+  await current.delete();
+});

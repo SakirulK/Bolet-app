@@ -1,4 +1,4 @@
-import { getDb } from "@/lib/db";
+import { getDb, type RecallDB } from "@/lib/db";
 import { localDateKey } from "@/lib/dates";
 import { calculateNextReview, type Rating } from "@/lib/learning/scheduling";
 import type { StudyEvent, StudyHistory, StudyMode } from "@/types";
@@ -8,14 +8,20 @@ export function newHistory(deckId: string, title: string, mode: StudyMode): Stud
 }
 export type Attempt = { id: string; cardId: string; correct: boolean; dontKnow?: boolean; rating?: Rating; durationMs?: number; override?: boolean; answer?: string };
 /** Idempotent writes protect double taps and retries; no answer is counted twice. */
-export async function commitAttempts(history: StudyHistory, attempts: Attempt[], complete = false): Promise<StudyHistory> {
-  const db = getDb();
+export async function commitAttempts(history: StudyHistory, attempts: Attempt[], complete = false, db: RecallDB = getDb()): Promise<StudyHistory> {
   return db.transaction("rw", [db.cards, db.decks, db.events, db.history, db.activity], async () => {
     let next = { ...(await db.history.get(history.id) ?? history), rounds: history.rounds };
     for (const attempt of attempts) {
       if (await db.events.get(attempt.id)) continue;
       const card = await db.cards.get(attempt.cardId);
-      if (!card) throw new Error("A card was deleted. Return to the deck and start again.");
+      if (!card || card.deletedAt || card.purgedAt || (await db.decks.get(card.deckId))?.deletedAt) throw new Error("A card was deleted. Return to the deck and start again.");
+      if (!card._reviewBase) {
+        const { _reviewBase: ignored, ...snapshot } = card;
+        void ignored;
+        delete (snapshot as unknown as Record<string, unknown>)._sync;
+        card._reviewBase = { card: snapshot, eventIds: (await db.events.where('cardId').equals(card.id).toArray()).map(event => event.id) };
+        await db.cards.update(card.id, { _reviewBase: card._reviewBase });
+      }
       const now = Date.now(), rating = attempt.rating ?? (attempt.correct ? "good" : "again");
       const patch = calculateNextReview(card, rating, now, !!attempt.dontKnow);
       const mastered = patch.masteryLevel === "Mastered" && card.masteryLevel !== "Mastered";

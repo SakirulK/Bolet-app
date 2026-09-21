@@ -16,7 +16,8 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
   const [title, setTitle] = useState(deck?.title ?? "");
   const [description, setDescription] = useState(deck?.description ?? "");
   const [subject, setSubject] = useState(deck?.subject ?? "");
-  const [cards, setCards] = useState<(CardInput & { key: string })[]>(deck?.cards.map(card => ({ ...card, key: card.id })) ?? []);
+  const [cards, setCards] = useState<(CardInput & { key: string })[]>(deck?.cards.map(card => ({ ...card, original: { term: card.term, definition: card.definition, position: card.position, acceptedAnswers: card.acceptedAnswers, acceptedTermAnswers: card.acceptedTermAnswers }, key: card.id })) ?? []);
+  const [removedCardIds, setRemovedCardIds] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +30,7 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
     event.preventDefault(); if (saving) return;
     setSaving(true); setError("");
     try {
-      const input = { title, description, subject, cards };
+      const input = { title, description, subject, cards, removedCardIds, original: deck ? { title: deck.title, description: deck.description, subject: deck.subject } : undefined };
       const id = deck ? (await updateDeck(deck.id, input), deck.id) : await createDeck(input);
       onCreated?.(id); onClose();
     } catch (error) { setError(error instanceof Error ? error.message : "Could not save your deck. Please try again."); }
@@ -47,7 +48,7 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
           <div className="flex items-center justify-between"><span className="text-sm text-muted">Card {index + 1}</span><div className="flex">
             <Button variant="ghost" size="icon" aria-label={`Move card ${index + 1} up`} disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={18} /></Button>
             <Button variant="ghost" size="icon" aria-label={`Move card ${index + 1} down`} disabled={index === cards.length - 1} onClick={() => move(index, 1)}><ArrowDown size={18} /></Button>
-            <Button variant="ghost" size="icon" aria-label={`Delete card ${index + 1}`} onClick={() => setCards(current => current.filter(item => item.key !== card.key))}><Trash2 size={18} /></Button>
+            <Button variant="ghost" size="icon" aria-label={`Delete card ${index + 1}`} onClick={() => { if (card.id) setRemovedCardIds(ids => [...ids, card.id!]); setCards(current => current.filter(item => item.key !== card.key)); }}><Trash2 size={18} /></Button>
           </div></div>
           <div className="grid gap-3 sm:grid-cols-2">{(["term", "definition"] as const).map(name => <label key={name} className="text-sm capitalize">{name}<textarea required rows={3} className={field} value={card[name]} onChange={event => setCards(current => current.map(item => item.key === card.key ? { ...item, [name]: event.target.value } : item))} /></label>)}</div>
           <details className="mt-3"><summary className="min-h-11 cursor-pointer py-3 text-sm text-muted">Accepted answers (optional)</summary><p className="mb-3 text-sm text-muted">One explicit alias per line. Used only when Smart Grading is on.</p><div className="grid gap-3 sm:grid-cols-2">{(["acceptedTermAnswers", "acceptedAnswers"] as const).map(name => <label key={name} className="text-sm">{name === "acceptedAnswers" ? "Accepted definition answers" : "Accepted term answers"}<textarea rows={2} className={field} value={(card[name] ?? []).join("\n")} onChange={event => setCards(current => current.map(item => item.key === card.key ? { ...item, [name]: event.target.value.split("\n") } : item))} /></label>)}</div></details>

@@ -1,9 +1,13 @@
+import { installJournal } from "@/data/sync/journal";
+import type { QueueItem, SyncMeta } from "@/data/sync/model";
 import Dexie, { type Table } from "dexie";
 import type { Card, DailyActivity, DeckRecord, Prefs, StudyHistory, StudyEvent } from "@/types";
 
 import type { Session } from "@/lib/study-session";
 
 export class RecallDB extends Dexie {
+  syncQueue!: Table<QueueItem, string>;
+  syncMeta!: Table<SyncMeta, string>;
   history!: Table<StudyHistory, string>;
   events!: Table<StudyEvent, string>;
   sessions!: Table<Session, string>;
@@ -12,8 +16,8 @@ export class RecallDB extends Dexie {
   activity!: Table<DailyActivity, string>;
   prefs!: Table<Prefs, string>;
 
-  constructor() {
-    super("recall");
+  constructor(name = "recall") {
+    super(name);
     this.version(1).stores({
       decks: "id, subject, favorite, updatedAt, lastStudiedAt",
       cards: "id, deckId, starred, dueAt",
@@ -43,6 +47,8 @@ export class RecallDB extends Dexie {
           difficultIds: session.missedIds, masteredIds: [], rounds: 0, ratings: {} });
       }
     });
+    this.version(4).stores({ syncQueue: "id, entityType, updatedAt", syncMeta: "id" });
+    installJournal(this);
   }
 }
 

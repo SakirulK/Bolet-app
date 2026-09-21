@@ -14,7 +14,7 @@ import type { Side } from "@/lib/learning/content";
 import { getDb } from "@/lib/db";
 import { saveDeck, removeDeck } from "@/data/decks";
 import { liveQuery } from "dexie";
-import { getPrefs } from "@/data/preferences";
+import { getPrefs, updatePrefs } from "@/data/preferences";
 import type { Card, DeckInput, DailyActivity, Deck, DeckRecord, Prefs, StudyHistory, StudyEvent } from "@/types";
 
 type StoreValue = {
@@ -84,8 +84,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       getPrefs(),
       db.activity.toArray(),
     ]);
-    setRecords(nextRecords);
-    setCards(nextCards);
+    setRecords(nextRecords.filter(row => !row.deletedAt && !row.purgedAt));
+    setCards(nextCards.filter(row => !row.deletedAt && !row.purgedAt));
     setPrefs(nextPrefs);
     setActivity(nextActivity);
     setReady(true);
@@ -97,8 +97,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return Promise.all([db.decks.toArray(), db.cards.toArray(), getPrefs(), db.activity.toArray(), db.history.toArray(), db.events.toArray()]);
     }).subscribe({
       next: ([nextRecords, nextCards, nextPrefs, nextActivity, nextHistory, nextEvents]) => {
-        setRecords(nextRecords); setCards(nextCards); setPrefs(nextPrefs);
-        setActivity(nextActivity); setHistory(nextHistory); setEvents(nextEvents); setReady(true); setError("");
+        setRecords(nextRecords.filter(row => !row.deletedAt && !row.purgedAt)); setCards(nextCards.filter(row => !row.deletedAt && !row.purgedAt)); setPrefs(nextPrefs);
+        setActivity(nextActivity); setHistory(nextHistory.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setEvents(nextEvents.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setReady(true); setError("");
       },
       error: () => setError("BOLET could not open local storage. Please allow browser storage and reload."),
     });
@@ -176,27 +176,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const setDailyGoal = useCallback(
     async (goal: number) => {
-      const db = getDb();
-      await db.prefs.put({ ...prefs, dailyGoal: goal });
+      await updatePrefs({ dailyGoal: goal });
       await refresh();
     },
-    [prefs, refresh],
+    [refresh],
   );
 
   const setDisplayName = useCallback(
     async (name: string) => {
-      const db = getDb();
-      await db.prefs.put({ ...prefs, displayName: name.trim() || "there" });
+      await updatePrefs({ displayName: name.trim() || "there" });
       await refresh();
     },
-    [prefs, refresh],
+    [refresh],
   );
 
   const toggleStarCard = useCallback(async (cardId: string, side: Side) => {
     const db = getDb();
     await db.transaction("rw", db.cards, async () => {
       const card = await db.cards.get(cardId);
-      if (!card) throw new Error("This card was deleted.");
+      if (!card || card.deletedAt || card.purgedAt) throw new Error("This card was deleted.");
       await db.cards.update(cardId, side === "term" ? { termStarred: !card.termStarred, updatedAt: Date.now() } : { definitionStarred: !card.definitionStarred, updatedAt: Date.now() });
     });
     await refresh();

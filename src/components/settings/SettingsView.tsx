@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import { DataSettings } from "./DataSettings";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ScreenSkeleton } from "@/components/ui/ScreenSkeleton";
@@ -44,7 +45,7 @@ export function SettingsView() {
       <PageHeader
         eyebrow="Settings"
         title="Make it yours"
-        description="Appearance and goals stay on this device. No account required."
+        description="Appearance, goals, account sync, and data protection."
       />
 
       <section className="rounded-2xl border border-edge bg-surface p-5">
@@ -101,6 +102,7 @@ export function SettingsView() {
         </Button>
       </form>
 
+      <DataSettings />
       <section className="rounded-2xl border border-edge bg-surface p-5 text-sm leading-6 text-muted">
         <h2 className="font-medium text-ink">About BOLET</h2>
         <a href="/install" className="study-link mt-3">Install BOLET & offline help</a>

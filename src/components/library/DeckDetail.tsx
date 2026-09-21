@@ -131,9 +131,9 @@ export function DeckDetail({ deckId }: { deckId: string }) {
       </div>
       <CreateDeckDialog open={editing} deck={deck} onClose={() => setEditing(false)} />
       {confirming && <Dialog title="Delete deck?" busy={deleting} onClose={() => setConfirming(false)}>
-        <p className="text-muted">“{deck.title}” and its {deck.cards.length} cards will be permanently deleted. This cannot be undone.</p>
+        <p className="text-muted">“{deck.title}” and its {deck.cards.length} cards will move to Trash. You can restore them in Settings. Trash is never emptied automatically.</p>
         {error && <p role="alert" className="mt-3 text-danger">{error}</p>}
-        <div className="mt-5 flex justify-end gap-2"><Button autoFocus variant="secondary" disabled={deleting} onClick={() => setConfirming(false)}>Keep deck</Button><Button variant="danger" disabled={deleting} onClick={handleDelete}>{deleting ? "Deleting…" : "Delete deck"}</Button></div>
+        <div className="mt-5 flex justify-end gap-2"><Button autoFocus variant="secondary" disabled={deleting} onClick={() => setConfirming(false)}>Keep deck</Button><Button variant="danger" disabled={deleting} onClick={handleDelete}>{deleting ? "Moving…" : "Move to Trash"}</Button></div>
       </Dialog>}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
+import { readDraft, saveDraft } from "@/data/drafts";
 import { LocalLink } from "@/components/ui/LocalLink";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Dialog } from "@/components/ui/Dialog";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -12,6 +13,7 @@ import { buildTest, type QuestionType, type Question } from "@/lib/learning/ques
 import { gradeWrittenAnswer } from "@/lib/learning/grading";
 import { newHistory, commitAttempts } from "@/data/history";
 import type { Deck, StudyHistory } from "@/types";
+type TestDraft = { exam: Exam; index: number; strict: boolean; auto: boolean; smart: boolean };
 type Exam = { questions: Question[]; history: StudyHistory; answers: Record<string, string>; grades: Record<string, boolean>; phase: "taking" | "manual" | "results"; submittedAt?: number };
 export function TestMode({ deck, initialFilter = "all" }: { deck: Deck; initialFilter?: ContentFilter }) {
   const [filter, setFilter] = useState(initialFilter), [count, setCount] = useState("all"), [custom, setCustom] = useState(5);
@@ -19,6 +21,13 @@ export function TestMode({ deck, initialFilter = "all" }: { deck: Deck; initialF
   const [strict, setStrict] = useState(true), [auto, setAuto] = useState(true), [shuffle, setShuffle] = useState(true);
   const [smart, setSmart] = useState(false);
   const [exam, setExam] = useState<Exam | null>(null), [index, setIndex] = useState(0), [confirm, setConfirm] = useState(false), [busy, setBusy] = useState(false), [error, setError] = useState("");
+  const [recovery, setRecovery] = useState<TestDraft | null>(null);
+  useEffect(() => { void readDraft<TestDraft>(`test:${deck.id}`).then(draft => {
+    if (draft && draft.exam.phase !== 'results' && draft.exam.questions.every(question => deck.cards.some(card => card.id === question.cardId))) setRecovery(draft);
+  }); }, [deck.id, deck.cards]);
+  useEffect(() => {
+    if (exam) void saveDraft(`test:${deck.id}`, { exam, index, strict, auto, smart }).catch(() => setError('Could not save your recovery draft. Keep this page open and try again.'));
+  }, [exam, index, strict, auto, smart, deck.id]);
   const lock = useRef(false);
   const eligible = filterCards(deck.cards, filter), questionCount = count === "all" ? eligible.length : count === "custom" ? custom : Number(count);
   function start(ids?: string[]) {
@@ -47,6 +56,7 @@ export function TestMode({ deck, initialFilter = "all" }: { deck: Deck; initialF
   }
   const unanswered = exam?.questions.filter(question => !exam.answers[question.id]?.trim()).length ?? 0;
   if (!exam) return <div className="mx-auto max-w-2xl space-y-6"><header><p className="text-sm text-accent">{deck.title}</p><h1 className="font-display text-3xl">Set up Test</h1><p className="mt-2 text-muted">Check what you know. Results stay hidden until submission.</p></header>
+    {recovery && <div className="space-y-2 rounded-2xl border border-edge p-4"><p className="text-sm text-muted">An unfinished test is saved on this device.</p><Button variant="secondary" onClick={() => { setExam(recovery.exam); setIndex(recovery.index); setStrict(recovery.strict); setAuto(recovery.auto); setSmart(recovery.smart); }}>Resume saved Test</Button></div>}
     <Section title="Content"><ContentSelect value={filter} onChange={setFilter} /><label className="block text-sm">Number of questions<select className={fieldClass} value={count} onChange={e => setCount(e.target.value)}>{[5, 10, 20].map(n => <option key={n} value={n} disabled={n > eligible.length}>{n}</option>)}<option value="custom">Custom</option><option value="all">All ({eligible.length})</option></select></label>{count === "custom" && <label className="block text-sm">Custom question count<input className={fieldClass} type="number" min={1} max={eligible.length} value={custom} onChange={e => setCustom(Number(e.target.value))} /></label>}<p className="text-sm text-muted">{eligible.length} eligible cards. No repeated questions.</p></Section>
     <Section title="Question types">{([["choice", "Multiple Choice"], ["written", "Written Answer"], ["boolean", "True / False"]] as const).map(([type, label]) => <Toggle key={type} label={label} value={types.includes(type)} onChange={checked => setTypes(checked ? [...types, type] : types.filter(item => item !== type))} />)}{!types.length && <p role="alert" className="text-danger">Choose at least one question type.</p>}<p className="text-sm text-muted">If no distinct distractor exists, a multiple-choice question becomes written.</p></Section>
     <Section title="Answer direction"><DirectionSelect value={direction} onChange={setDirection} /></Section><Section title="Grading and order"><Toggle label="Allow minor spelling mistakes" value={!strict} onChange={value => setStrict(!value)} /><Toggle label="Smart Grading" value={smart} onChange={setSmart} /><p className="text-sm text-muted">Spelling is exact unless minor mistakes are enabled. Smart Grading separately accepts only explicitly saved aliases.</p><Toggle label="Automatically grade test" value={auto} onChange={setAuto} /><Toggle label="Shuffle questions" value={shuffle} onChange={setShuffle} /></Section>
