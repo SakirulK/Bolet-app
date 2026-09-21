@@ -1,4 +1,4 @@
--- Run once in Supabase SQL Editor. No service-role key is used by BOLET.
+-- Run once in Supabase SQL Editor. No service-role key is used by BrainBo.
 create table if not exists public.bolet_records (
   user_id uuid not null references auth.users(id),
   entity_type text not null check (entity_type in ('decks','cards','prefs','events','history','sessions','activity')),
@@ -9,7 +9,8 @@ create table if not exists public.bolet_records (
 );
 alter table public.bolet_records enable row level security;
 drop policy if exists "Read own BOLET records" on public.bolet_records;
-create policy "Read own BOLET records" on public.bolet_records for select to authenticated using ((select auth.uid()) = user_id);
+drop policy if exists "Read own BrainBo records" on public.bolet_records;
+create policy "Read own BrainBo records" on public.bolet_records for select to authenticated using ((select auth.uid()) = user_id);
 -- Mutations go through the checked merge function, never a raw last-writer upsert.
 revoke all on public.bolet_records from anon, authenticated;
 grant select on public.bolet_records to authenticated;
@@ -33,7 +34,7 @@ begin
   if kind not in ('decks','cards','prefs','events','history','sessions','activity') or eid is null or length(eid) = 0
     or jsonb_typeof(incoming->'fields') is distinct from 'object'
     or jsonb_typeof(incoming->'versions') is distinct from 'object' then
-    raise exception 'Invalid BOLET envelope';
+    raise exception 'Invalid BrainBo envelope';
   end if;
   -- Serialize merges for this account, including parent deletion and child writes.
   perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(uid::text, 0));

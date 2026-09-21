@@ -30,11 +30,11 @@ test('deck editing, explicit card removal, Trash and restore survive reload with
 test('full backup exports, validates, previews and restores atomically', async ({ page }) => {
   await seedStudy(page,3);await page.goto('/settings');
   await expect(page.getByText('Local storage protection:',{exact:false})).toBeVisible();
-  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export BOLET Backup'}).click();const file=await download;const path=await file.path();expect(path).toBeTruthy();
+  const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export BrainBo Backup'}).click();const file=await download;const path=await file.path();expect(path).toBeTruthy();
   const before=await records<Card>(page,'cards');
-  await page.getByLabel('Restore BOLET Backup',{exact:true}).setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"format":"bolet-backup","version":999}')});
-  await expect(page.getByText(/Invalid BOLET backup/)).toBeVisible();expect(await records<Card>(page,'cards')).toEqual(before);
-  await page.getByLabel('Restore BOLET Backup',{exact:true}).setInputFiles(path!);await expect(page.getByRole('dialog')).toContainText('1 decks · 3 cards');
+  await page.getByLabel('Restore BrainBo Backup',{exact:true}).setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{"format":"bolet-backup","version":999}')});
+  await expect(page.getByText(/Invalid BrainBo backup/)).toBeVisible();expect(await records<Card>(page,'cards')).toEqual(before);
+  await page.getByLabel('Restore BrainBo Backup',{exact:true}).setInputFiles(path!);await expect(page.getByRole('dialog')).toContainText('1 decks · 3 cards');
   await page.getByRole('combobox',{name:'Restore method'}).selectOption('replace');await expect(page.getByRole('dialog')).toContainText('does not delete unrelated cloud data');
   await page.getByRole('button',{name:'Confirm restore'}).click();await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('button',{name:'Export safety copy from before last replacement'})).toBeVisible();
   await page.reload();expect((await records<Card>(page,'cards')).map(c=>c.id)).toEqual(before.map(c=>c.id));await page.goto('/library/learn-deck');await expect(page.getByRole('heading',{name:'Biology & Computing'})).toBeVisible();

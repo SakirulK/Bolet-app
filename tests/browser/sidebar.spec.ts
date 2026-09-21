@@ -11,7 +11,7 @@ test('desktop sidebar remains in viewport across long pages while main content s
     await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(50);
     const after = (await sidebar.boundingBox())!;
     expect(Math.abs(after.y - before.y)).toBeLessThan(1); expect(after.height).toBe(600);
-    await expect(sidebar.getByRole('link', { name: /BOLET/ })).toBeInViewport();
+    await expect(sidebar.getByRole('link', { name: /BrainBo/ })).toBeInViewport();
     await expect(sidebar.getByRole('navigation')).toBeInViewport();
     await expect(sidebar.getByRole('button', { name: /Switch to .* mode/ })).toBeInViewport();
     const scroll = await page.evaluate(() => ({ horizontal: document.documentElement.scrollWidth > innerWidth, mainOverflow: getComputedStyle(document.querySelector('main')!).overflowY, bodyOverflow: getComputedStyle(document.body).overflowY }));

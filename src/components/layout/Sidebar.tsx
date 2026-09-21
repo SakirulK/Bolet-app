@@ -20,7 +20,7 @@ export function Sidebar() {
             B
           </span>
           <span className="font-display text-xl tracking-tight text-ink">
-            BOLET
+            BrainBo
           </span>
         </Link>
       </div>

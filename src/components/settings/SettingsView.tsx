@@ -104,8 +104,8 @@ export function SettingsView() {
 
       <DataSettings />
       <section className="rounded-2xl border border-edge bg-surface p-5 text-sm leading-6 text-muted">
-        <h2 className="font-medium text-ink">About BOLET</h2>
-        <a href="/install" className="study-link mt-3">Install BOLET & offline help</a>
+        <h2 className="font-medium text-ink">About BrainBo</h2>
+        <a href="/install" className="study-link mt-3">Install BrainBo & offline help</a>
         <p className="mt-2">
           A local-first study app. Decks live in IndexedDB on this browser. Add
           it to your Home Screen on iPad for a full-screen, app-like layout.

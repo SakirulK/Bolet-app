@@ -100,7 +100,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setRecords(nextRecords.filter(row => !row.deletedAt && !row.purgedAt)); setCards(nextCards.filter(row => !row.deletedAt && !row.purgedAt)); setPrefs(nextPrefs);
         setActivity(nextActivity); setHistory(nextHistory.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setEvents(nextEvents.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setReady(true); setError("");
       },
-      error: () => setError("BOLET could not open local storage. Please allow browser storage and reload."),
+      error: () => setError("BrainBo could not open local storage. Please allow browser storage and reload."),
     });
     return () => subscription.unsubscribe();
   }, []);

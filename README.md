@@ -1,4 +1,4 @@
-# BOLET
+# BrainBo
 
 Local-first study app for decks and flashcards. Data is saved immediately in IndexedDB (Dexie), with optional Supabase account sync and full local backups. No paid APIs.
 
@@ -12,7 +12,7 @@ npm run start
 npm run lint
 ```
 
-Open [http://localhost:3000](http://localhost:3000). On iPad Safari: Share → Add to Home Screen for standalone PWA chrome (see Settings → Install BOLET for offline readiness).
+Open [http://localhost:3000](http://localhost:3000). On iPad Safari: Share → Add to Home Screen for standalone PWA chrome (see Settings → Install BrainBo for offline readiness).
 
 ## Flashcards
 
@@ -27,7 +27,7 @@ Each answer atomically saves card progress, daily activity, and a session record
 in Dexie. Session records include answer totals, missed cards, mastery streaks,
 and timestamps. Accuracy counts all attempts. The existing IndexedDB database
 and theme keys retain their original internal names to preserve existing data
-through the BOLET rename.
+through the BrainBo rename.
 
 ## Validation
 

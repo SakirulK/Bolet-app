@@ -47,7 +47,7 @@ test('iPad touch: flip, swipe, repeat missed cards, complete, review and persist
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
   await seed(page);
-  await expect(page).toHaveTitle(/BOLET/);
+  await expect(page).toHaveTitle(/BrainBo/);
   await page.getByTestId('flashcard').tap();
   await expect(page.getByTestId('flashcard')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.getByTestId('flashcard').locator('[aria-hidden="false"]')).toContainText('The processor runs instructions.');

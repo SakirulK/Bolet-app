@@ -124,7 +124,7 @@ test('failed upload increments retry count without dropping content, then reconn
 test('malformed backups leave all data untouched and old backups cannot revive terminal IDs', () => devices(async a => {
   const id=await saveDeck(input,undefined,a),backup=await createBackup(a);
   for (const mutate of [b=>{b.data.cards[0].term=42;},b=>{b.data.cards[0].acceptedAnswers=[42];},b=>{b.data.cards[0].reviewCount='many';},b=>{b.data.cards[0]._sync.fields.term.stamp='invalid';},b=>{b.data.cards[0].deckId='missing';},b=>{b.data.cards[0]._reviewBase={card:{mastery:'bad'},eventIds:[]};}]) {
-    const malformed=structuredClone(backup);mutate(malformed);await assert.rejects(restoreBackup(malformed,'replace',a),/Invalid BOLET backup/);assert.equal(await a.cards.count(),2);assert.equal((await a.decks.get(id)).title,'Biology');
+    const malformed=structuredClone(backup);mutate(malformed);await assert.rejects(restoreBackup(malformed,'replace',a),/Invalid BrainBo backup/);assert.equal(await a.cards.count(),2);assert.equal((await a.decks.get(id)).title,'Biology');
   }
   await removeDeck(id,a);await permanentlyDeleteDeck(id,a);await restoreBackup(backup,'replace',a);assert.ok((await a.decks.get(id)).purgedAt);assert.equal((await a.decks.get(id)).title,undefined);
 }));

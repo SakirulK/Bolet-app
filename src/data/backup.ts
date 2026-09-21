@@ -8,7 +8,7 @@ export async function createBackup(db = getDb()): Promise<Backup> {
   }));
 }
 function object(value: unknown): value is Record<string, unknown> { return !!value && typeof value === 'object' && !Array.isArray(value); }
-function fail(detail: string): never { throw new Error(`Invalid BOLET backup: ${detail}. No data was changed.`); }
+function fail(detail: string): never { throw new Error(`Invalid BrainBo backup: ${detail}. No data was changed.`); }
 /** Validate the entire file before opening any write transaction. No partial imports. */
 export function validateBackup(input: unknown): Backup {
   if (!object(input) || input.format !== 'bolet-backup' || input.version !== 1 || typeof input.exportedAt !== 'string' || !Number.isFinite(Date.parse(input.exportedAt)) || !object(input.data)) fail('unsupported format');
@@ -103,6 +103,6 @@ export async function restoreBackup(input: unknown, mode: 'merge' | 'replace', d
 }
 export function downloadBackup(backup: Backup) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }));
-  const link = document.createElement('a'); link.href = url; link.download = `BOLET-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  const link = document.createElement('a'); link.href = url; link.download = `BrainBo-backup-${new Date().toISOString().slice(0, 10)}.json`;
   document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

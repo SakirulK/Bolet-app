@@ -21,15 +21,15 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "BOLET",
-    template: "%s · BOLET",
+    default: "BrainBo",
+    template: "%s · BrainBo",
   },
   description:
     "A local-first study app for decks, flashcards, and daily recall practice.",
-  applicationName: "BOLET",
+  applicationName: "BrainBo",
   appleWebApp: {
     capable: true,
-    title: "BOLET",
+    title: "BrainBo",
     statusBarStyle: "black-translucent",
   },
   formatDetection: {

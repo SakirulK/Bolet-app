@@ -28,7 +28,7 @@ async function syncNow(page:Page) { await page.goto('/settings');await page.getB
 test('real Auth client and sync engine: consent, two browsers, outage, sign out/in, clean-device recovery',async({page,context,browser})=>{
   test.setTimeout(90000);
   const cloud=new Map<string,Envelope>();let available=true;await mockCloud(context,cloud,()=>available);
-  await seedStudy(page,3);await login(page);await expect(page.getByText('BOLET found study data stored on this device.')).toBeVisible();expect(cloud.size).toBe(0);
+  await seedStudy(page,3);await login(page);await expect(page.getByText('BrainBo found study data stored on this device.')).toBeVisible();expect(cloud.size).toBe(0);
   await page.getByRole('button',{name:'Add this data to my account'}).click();await expect(page.getByRole('status').filter({hasText:/^Synced$/})).toBeVisible();expect(cloud.has('decks:learn-deck')).toBe(true);
   const second=await browser.newContext({baseURL:'http://localhost:3101'});await mockCloud(second,cloud,()=>available);const other=await second.newPage();
   try {

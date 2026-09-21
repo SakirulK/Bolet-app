@@ -1,19 +1,19 @@
-# BOLET data durability
+# BrainBo data durability
 
 ## Supabase setup (required to enable account sync)
 
-1. Create a Supabase **Free** project. BOLET needs no paid API, AI service, server secret, or paid plan. Review the provider's current free-plan limits before relying on it as your only backup.
+1. Create a Supabase **Free** project. BrainBo needs no paid API, AI service, server secret, or paid plan. Review the provider's current free-plan limits before relying on it as your only backup.
 2. Run [`supabase/migrations/202609210001_bolet_durability.sql`](../supabase/migrations/202609210001_bolet_durability.sql) in the project's SQL Editor. It creates `bolet_records`, RLS, and the transactional `bolet_merge_record` function. Re-running it is safe.
 3. Enable Email authentication in Authentication → Providers. Keep email confirmation enabled. Set Authentication → URL Configuration → Site URL to the app's HTTPS origin; allow `<origin>/settings` for confirmation and password recovery. Add localhost only for development. Configure email delivery for your intended users; Supabase's built-in sender has delivery restrictions/rate limits. Test confirmation and password recovery with your own email before launch.
 4. Put the project URL and **public** publishable key in `.env.local` (see [`.env.example`](../.env.example)):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - Older projects can instead use `NEXT_PUBLIC_SUPABASE_ANON_KEY` (public anon key only).
-   Never put a service-role/secret key in these variables. No service-role key is needed anywhere in BOLET.
+   Never put a service-role/secret key in these variables. No service-role key is needed anywhere in BrainBo.
 5. Use Node 22 or later (`.nvmrc`), then `npm install`, `npm run build`, and `npm run start`. Public Next.js environment variables are embedded at build time; rebuild after changing them. Set the same variables on your deployment before building.
-6. Open Settings, create/confirm your account and sign in. On an existing device, select **Add this data to my account**. Wait for **Synced**. Sign in on another browser/device and verify the same deck appears. Export a BOLET backup as an independent copy.
+6. Open Settings, create/confirm your account and sign in. On an existing device, select **Add this data to my account**. Wait for **Synced**. Sign in on another browser/device and verify the same deck appears. Export a BrainBo backup as an independent copy.
 
-The repository does not provision or modify a remote Supabase project automatically. Missing configuration leaves BOLET fully usable locally with backups. Do not interpret local-only status as cloud protection.
+The repository does not provision or modify a remote Supabase project automatically. Missing configuration leaves BrainBo fully usable locally with backups. Do not interpret local-only status as cloud protection.
 
 Official references: [Supabase email/password authentication](https://supabase.com/docs/guides/auth/passwords), [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security), [public client keys](https://supabase.com/docs/guides/api/api-keys).
 
@@ -49,7 +49,7 @@ A deleted item has an explicit `deletedAt` field. Ordinary stale edits cannot cl
 
 Delete Deck → confirmation → Trash. Cards, stars and metadata remain. Settings has Restore and a separately confirmed Delete Permanently. Trash never auto-empties. Permanent deletion removes current deck/card content and related study history, retaining only terminal ID markers for synchronization. Historical aggregate activity is retained. Independently exported backups and the last local restore safety copy are not retroactively erased.
 
-Full backups use `format: bolet-backup`, `version: 1`, ISO export time and all domain tables. They contain personal study content, aliases, stars, schedules, history, preferences, Trash, and content revisions—not Auth tokens, passwords or cloud credentials. Store files privately.
+Full BrainBo backups retain the legacy-compatible `format: bolet-backup`, `version: 1`, ISO export time and all domain tables. They contain personal study content, aliases, stars, schedules, history, preferences, Trash, and content revisions—not Auth tokens, passwords or cloud credentials. Store files privately.
 
 Restore validates the entire file, previews counts, asks Merge/Replace, and requires confirmation. Invalid files never open a write transaction. Merge uses IDs/field versions. Replace explicitly replaces **local** domain rows after recording a downloadable safety copy of the previous local data. Pending account uploads are preserved. Replace does not send deletion for records absent from the backup, so unrelated account data can reappear on the next sync. The dialog explains this. Permanent account tombstones still win over old restored backups. Backup uploads are limited to 50 MB in this initial UI.
 
@@ -57,9 +57,9 @@ Learn feedback/overrides and unfinished Test answers also have local recovery dr
 
 ## Browser storage and remaining limits
 
-BOLET checks persistent storage and requests it once per local installation when supported. Settings distinguishes Protected, Browser managed and unavailable APIs. This reduces eviction risk; it is not a backup guarantee. Safari/PWA storage policies differ, and installing a PWA can create a separate storage context on some platforms. Sign into the same account or restore a backup in that context.
+BrainBo checks persistent storage and requests it once per local installation when supported. Settings distinguishes Protected, Browser managed and unavailable APIs. This reduces eviction risk; it is not a backup guarantee. Safari/PWA storage policies differ, and installing a PWA can create a separate storage context on some platforms. Sign into the same account or restore a backup in that context.
 
-Unsynced local-only data is still vulnerable to explicitly clearing browser storage, disk failure or device loss. Sign in and finish syncing before moving devices. Background sync while Safari/PWA is closed is not promised; pending work resumes on opening BOLET with connectivity. Provider outages, paused free projects, quotas and email delivery limits can delay sync. Keep independent backups. Physical iPad Safari and live Supabase email delivery must be verified on deployment.
+Unsynced local-only data is still vulnerable to explicitly clearing browser storage, disk failure or device loss. Sign in and finish syncing before moving devices. Background sync while Safari/PWA is closed is not promised; pending work resumes on opening BrainBo with connectivity. Provider outages, paused free projects, quotas and email delivery limits can delay sync. Keep independent backups. Physical iPad Safari and live Supabase email delivery must be verified on deployment.
 
 Very large accounts currently use paginated full pulls and replay scheduling events; this favors straightforward recovery over optimal bandwidth. There is no automatic pruning. Device clock skew can affect the winner of simultaneous same-field edits, although losing text is retained. Account changes within one browser profile are intentionally blocked rather than silently mixing caches.
 
