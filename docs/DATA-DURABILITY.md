@@ -4,14 +4,14 @@
 
 1. Create a Supabase **Free** project. BrainBo needs no paid API, AI service, server secret, or paid plan. Review the provider's current free-plan limits before relying on it as your only backup.
 2. Run [`supabase/migrations/202609210001_bolet_durability.sql`](../supabase/migrations/202609210001_bolet_durability.sql) in the project's SQL Editor. It creates `bolet_records`, RLS, and the transactional `bolet_merge_record` function. Re-running it is safe.
-3. Enable Email authentication in Authentication → Providers. Keep email confirmation enabled. Set Authentication → URL Configuration → Site URL to the app's HTTPS origin; allow `<origin>/settings` for confirmation and password recovery. Add localhost only for development. Configure email delivery for your intended users; Supabase's built-in sender has delivery restrictions/rate limits. Test confirmation and password recovery with your own email before launch.
+3. Enable Email authentication in Authentication → Providers. Keep email confirmation enabled. Set Authentication → URL Configuration → Site URL to the app's HTTPS origin; allow `<origin>/sign-in` for confirmation and `<origin>/reset-password` for password recovery. Add localhost equivalents only for development. Configure email delivery for your intended users; Supabase's built-in sender has delivery restrictions/rate limits. Test confirmation and password recovery with your own email before launch.
 4. Put the project URL and **public** publishable key in `.env.local` (see [`.env.example`](../.env.example)):
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
    - Older projects can instead use `NEXT_PUBLIC_SUPABASE_ANON_KEY` (public anon key only).
    Never put a service-role/secret key in these variables. No service-role key is needed anywhere in BrainBo.
 5. Use Node 22 or later (`.nvmrc`), then `npm install`, `npm run build`, and `npm run start`. Public Next.js environment variables are embedded at build time; rebuild after changing them. Set the same variables on your deployment before building.
-6. Open Settings, create/confirm your account and sign in. On an existing device, select **Add this data to my account**. Wait for **Synced**. Sign in on another browser/device and verify the same deck appears. Export a BrainBo backup as an independent copy.
+6. Open BrainBo, create and confirm your account, then sign in. On an existing device, select **Add this data to my account**. Complete the one-time profile setup and wait for **Synced**. Sign in on another browser/device and verify the same deck appears. Export a BrainBo backup as an independent copy.
 
 The repository does not provision or modify a remote Supabase project automatically. Missing configuration leaves BrainBo fully usable locally with backups. Do not interpret local-only status as cloud protection.
 
@@ -68,5 +68,5 @@ Very large accounts currently use paginated full pulls and replay scheduling eve
 - Unit/data tests: transactional outbox rollback, reload/reopen, edit/reorder preservation, explicit card removal, migration from v1/v2/v3, backup validation/merge/replace/safety copy, absence-is-not-deletion, outages/reconnect, in-flight acknowledgement races, two-device field conflicts and additive study, Trash/restore/permanent deletion.
 - Embedded PostgreSQL tests execute the **actual migration** and merge RPC, checking RLS across two users, blocked direct writes, anonymous access, merge parity and parent/child tombstones.
 - Playwright production tests cover the existing study suite plus durable edits, Trash, backup restore, offline reload and answer recovery.
-- A separate browser integration uses the real Supabase Auth client/sync engine with mocked HTTP responses across isolated browser contexts, covering first-login consent, outage, sign-out/in and new-device recovery. It does not claim a live hosted Supabase deployment test.
+- A separate browser integration uses the real Supabase Auth client/sync engine with mocked HTTP responses across isolated browser contexts, covering auth-first entry, signup validation, password recovery, local-data consent, profile setup, outage/offline reopening, sign-out safety and new-device recovery. It does not claim a live hosted Supabase deployment test.
 - Commands: `npm run typecheck`, `npm run lint`, `npm test`, `npm run test:e2e`, `npm run build`.

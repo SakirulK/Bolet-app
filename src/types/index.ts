@@ -56,6 +56,7 @@ export type DailyActivity = {
 export type Prefs = {
   id: "local";
   theme?: "system" | "light" | "dark";
+  profileConfigured?: boolean;
   dailyGoal: number;
   displayName: string;
 };

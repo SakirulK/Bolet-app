@@ -71,7 +71,7 @@ export function HomeDashboard() {
         <div>
           <p className="text-sm font-medium text-accent">{greeting}</p>
           <h1 className="mt-1 font-display text-3xl tracking-tight sm:text-4xl">
-            Ready when you are, {prefs.displayName}.
+            {prefs.displayName && prefs.displayName !== "there" ? `Ready when you are, ${prefs.displayName}.` : "Ready when you are."}
           </h1>
           <p className="mt-2 max-w-xl text-base leading-7 text-muted">
             Pick up a deck, keep the streak, or start something new. Your decks

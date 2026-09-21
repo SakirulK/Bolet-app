@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
 import { DataSettings } from "./DataSettings";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { Button } from "@/components/ui/Button";
 import { ScreenSkeleton } from "@/components/ui/ScreenSkeleton";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/providers/StoreProvider";
@@ -17,35 +15,17 @@ const THEMES: { value: ThemePreference; label: string }[] = [
 ];
 
 export function SettingsView() {
-  const { ready, prefs, setDailyGoal, setDisplayName } = useStore();
+  const { ready } = useStore();
   const { preference, setPreference } = useTheme();
-  const [nameDraft, setNameDraft] = useState<string | null>(null);
-  const [goalDraft, setGoalDraft] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
-  const name = nameDraft ?? prefs.displayName;
-  const goal = goalDraft ?? String(prefs.dailyGoal);
 
   if (!ready) return <ScreenSkeleton />;
-
-  async function saveProfile(event: FormEvent) {
-    event.preventDefault();
-    const parsed = Number.parseInt(goal, 10);
-    await setDisplayName(name);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      await setDailyGoal(parsed);
-    }
-    setNameDraft(null);
-    setGoalDraft(null);
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2000);
-  }
 
   return (
     <div className="mx-auto max-w-xl space-y-8">
       <PageHeader
         eyebrow="Settings"
         title="Make it yours"
-        description="Appearance, goals, account sync, and data protection."
+        description="Appearance, local storage, backups, and data protection."
       />
 
       <section className="rounded-2xl border border-edge bg-surface p-5">
@@ -68,39 +48,6 @@ export function SettingsView() {
           ))}
         </div>
       </section>
-
-      <form
-        onSubmit={saveProfile}
-        className="space-y-4 rounded-2xl border border-edge bg-surface p-5"
-      >
-        <h2 className="font-medium text-ink">Study profile</h2>
-        <div>
-          <label htmlFor="display-name" className="text-sm text-muted">
-            What should we call you?
-          </label>
-          <input
-            id="display-name"
-            value={name}
-            onChange={(event) => setNameDraft(event.target.value)}
-            className="mt-1.5 h-12 w-full rounded-2xl border border-edge bg-canvas px-4 outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          />
-        </div>
-        <div>
-          <label htmlFor="daily-goal" className="text-sm text-muted">
-            Daily card goal
-          </label>
-          <input
-            id="daily-goal"
-            inputMode="numeric"
-            value={goal}
-            onChange={(event) => setGoalDraft(event.target.value)}
-            className="mt-1.5 h-12 w-full rounded-2xl border border-edge bg-canvas px-4 outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          />
-        </div>
-        <Button type="submit" size="lg">
-          {saved ? "Saved" : "Save"}
-        </Button>
-      </form>
 
       <DataSettings />
       <section className="rounded-2xl border border-edge bg-surface p-5 text-sm leading-6 text-muted">

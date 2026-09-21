@@ -33,8 +33,7 @@ type StoreValue = {
   createDeck: (input: DeckInput) => Promise<string>;
   updateDeck: (deckId: string, input: DeckInput) => Promise<void>;
   deleteDeck: (deckId: string) => Promise<void>;
-  setDailyGoal: (goal: number) => Promise<void>;
-  setDisplayName: (name: string) => Promise<void>;
+  setProfile: (name: string, goal: number) => Promise<void>;
   toggleStarCard: (cardId: string, side: Side) => Promise<void>;
 };
 
@@ -174,21 +173,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
-  const setDailyGoal = useCallback(
-    async (goal: number) => {
-      await updatePrefs({ dailyGoal: goal });
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const setDisplayName = useCallback(
-    async (name: string) => {
-      await updatePrefs({ displayName: name.trim() || "there" });
-      await refresh();
-    },
-    [refresh],
-  );
+  const setProfile = useCallback(async (name: string, goal: number) => {
+    await updatePrefs({
+      displayName: name.trim() || "there",
+      dailyGoal: goal,
+      profileConfigured: true,
+    });
+    await refresh();
+  }, [refresh]);
 
   const toggleStarCard = useCallback(async (cardId: string, side: Side) => {
     const db = getDb();
@@ -217,8 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       createDeck,
       updateDeck,
       deleteDeck,
-      setDailyGoal,
-      setDisplayName,
+      setProfile,
       toggleStarCard,
     }),
     [
@@ -237,8 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       createDeck,
       updateDeck,
       deleteDeck,
-      setDailyGoal,
-      setDisplayName,
+      setProfile,
       toggleStarCard,
     ],
   );

@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { liveQuery } from 'dexie';
 import { Button } from '@/components/ui/Button';
 import { Dialog } from '@/components/ui/Dialog';
 import { useSync } from '@/providers/SyncProvider';
-import { signIn, signUp, resetPassword, updatePassword } from '@/data/sync/auth';
 import { createBackup, downloadBackup, restoreBackup, validateBackup, type Backup } from '@/data/backup';
 import { getDb } from '@/lib/db';
 import { restoreDeck, permanentlyDeleteDeck } from '@/data/decks';
@@ -12,7 +12,6 @@ import type { DeckRecord } from '@/types';
 
 export function DataSettings() {
   const sync = useSync();
-  const [email, setEmail] = useState(''), [password, setPassword] = useState('');
   const [message, setMessage] = useState(''), [busy, setBusy] = useState(false);
   const [trash, setTrash] = useState<DeckRecord[]>([]), [purge, setPurge] = useState<DeckRecord | null>(null);
   const [backup, setBackup] = useState<Backup | null>(null), [mode, setMode] = useState<'merge' | 'replace'>('merge');
@@ -26,22 +25,13 @@ export function DataSettings() {
     try { await action(); } catch (error) { setMessage(error instanceof Error ? error.message : String((error as {message?: string}).message ?? error)); }
     finally { setBusy(false); }
   }
-  async function authenticate(signup: boolean) {
-    await run(async () => {
-      if (signup) await signUp(email, password); else await signIn(email, password);
-      setPassword(''); if (signup) setMessage('Check your email to confirm your account, then sign in.');
-    });
-  }
   const field = 'mt-1 w-full rounded-xl border border-edge bg-canvas p-3 text-base';
   return <>
     <section className="space-y-3 rounded-2xl border border-edge bg-surface p-5">
-      <h2 className="font-medium">Account & sync</h2>
-      <p role="status" className="text-sm text-muted">{sync.status}</p>
-      {sync.user ? <><p className="break-all text-sm">{sync.user.email}</p><p className="text-sm text-muted">Signing out keeps data on this device. Anyone using this browser can still see it. Use a separate browser profile on shared devices.</p><div className="flex flex-wrap gap-2"><Button variant="secondary" disabled={busy} onClick={() => void run(() => sync.retry())}>Sync now</Button><Button variant="ghost" disabled={busy} onClick={() => void run(sync.signOut)}>Sign out</Button></div></> : sync.configured ? <form onSubmit={event => { event.preventDefault(); void authenticate(false); }} className="space-y-3"><p className="text-sm text-muted">Sign in to recover your synced decks on another device. Local study works without an account.</p><label className="block text-sm">Email<input className={field} type="email" autoComplete="email" required value={email} onChange={event => setEmail(event.target.value)} /></label><label className="block text-sm">Password<input className={field} type="password" autoComplete="current-password" minLength={8} required value={password} onChange={event => setPassword(event.target.value)} /></label><div className="flex flex-wrap gap-2"><Button type="submit" disabled={busy}>Sign in</Button><Button variant="secondary" disabled={busy || !email || password.length < 8} onClick={() => void authenticate(true)}>Create account</Button></div><Button variant="ghost" disabled={busy || !email} onClick={() => void run(async () => { await resetPassword(email); setMessage('Check your email for a password reset link.'); })}>Forgot password?</Button></form> : <p className="text-sm text-muted">Cloud sync is not configured. Decks are saved on this device; export a backup for recovery.</p>}
-      {sync.user && <details><summary className="min-h-11 cursor-pointer py-2 text-sm">Update password</summary><label className="block text-sm">New password<input type="password" autoComplete="new-password" minLength={8} value={password} onChange={event => setPassword(event.target.value)} className={field} /></label><Button disabled={busy || password.length < 8} onClick={() => void run(async () => { await updatePassword(password); setPassword(''); setMessage('Password updated.'); })}>Save new password</Button></details>}
-      {sync.needsConsent && <div className="space-y-3 border-t border-edge pt-3"><p>BrainBo found study data stored on this device.</p><p className="text-sm text-muted">Add decks, cards, stars, progress, preferences, and study history to your account. Existing account data is merged, never discarded.</p><Button disabled={busy} onClick={() => void run(() => sync.retry(true))}>Add this data to my account</Button></div>}
-      {sync.error && <p role="alert" className="break-words text-sm text-danger">{sync.error}</p>}
-      <p className="border-t border-edge pt-3 text-sm">Local storage protection: <strong>{sync.protection}</strong></p><p className="text-sm text-muted">Extra protection from browser eviction, not a backup. Keep an exported backup of important material.</p>
+      <h2 className="font-medium">Storage & data protection</h2>
+      <p className="text-sm">Local storage protection: <strong>{sync.protection}</strong></p>
+      <p className="text-sm text-muted">Extra protection from browser eviction, not a backup. Keep an exported backup of important material.</p>
+      {sync.configured && <Link href="/profile" className="study-link">Open Profile & account</Link>}
     </section>
     <section className="space-y-3 rounded-2xl border border-edge bg-surface p-5"><h2 className="font-medium">Backup & restore</h2><p className="text-sm text-muted">A full backup includes decks, Trash, cards, stars, accepted answers, progress, schedules, history, and preferences. It contains no passwords or account tokens.</p><div className="flex flex-wrap gap-2"><Button disabled={busy} onClick={() => void run(async () => downloadBackup(await createBackup()))}>Export BrainBo Backup</Button><label className="inline-flex min-h-12 cursor-pointer items-center rounded-xl border border-edge px-4 text-sm font-medium">Restore BrainBo Backup<input aria-label="Restore BrainBo Backup" type="file" accept=".json,application/json" className="sr-only" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void run(async () => { if (file.size > 50_000_000) throw new Error('Choose a backup smaller than 50 MB.'); setBackup(validateBackup(JSON.parse(await file.text()))); setMode('merge'); }); }} /></label></div>{safety && <Button variant="ghost" onClick={() => void run(async () => { const row = await getDb().syncMeta.get('beforeRestore'); if (row) downloadBackup(JSON.parse(row.value)); })}>Export safety copy from before last replacement</Button>}</section>
     <section className="space-y-3 rounded-2xl border border-edge bg-surface p-5"><h2 className="font-medium">Trash</h2><p className="text-sm text-muted">Trash never auto-deletes. Restore a deck with its cards, stars, and progress intact.</p>{!trash.length ? <p className="py-3 text-sm text-muted">Trash is empty.</p> : <ul className="divide-y divide-edge">{trash.map(deck => <li key={deck.id} className="flex flex-wrap items-center gap-2 py-3"><span className="mr-auto min-w-0 break-words">{deck.title}</span><Button variant="secondary" disabled={busy} onClick={() => void run(() => restoreDeck(deck.id))}>Restore</Button><Button variant="danger" disabled={busy} onClick={() => setPurge(deck)}>Delete Permanently</Button></li>)}</ul>}</section>

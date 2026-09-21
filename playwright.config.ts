@@ -8,6 +8,13 @@ export default defineConfig({
     ...devices['iPad Pro 11'],
     browserName: 'chromium', channel: 'chrome',
     baseURL: 'http://127.0.0.1:3100',
+    storageState: {
+      cookies: [],
+      origins: [{
+        origin: 'http://127.0.0.1:3100',
+        localStorage: [{ name: 'brainbo-continue-local', value: 'true' }],
+      }],
+    },
     screenshot: 'only-on-failure', trace: 'retain-on-failure',
   },
   webServer: { command: 'npm run start -- --port 3100', url: 'http://127.0.0.1:3100', reuseExistingServer: false },

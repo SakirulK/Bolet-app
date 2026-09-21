@@ -14,7 +14,7 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface/95 backdrop-blur-md lg:hidden"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
-      <ul className="mx-auto grid max-w-xl grid-cols-5">
+      <ul className="mx-auto grid max-w-2xl grid-cols-6">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(pathname, item.href);
           const Icon = item.icon;

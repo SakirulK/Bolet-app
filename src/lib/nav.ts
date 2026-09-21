@@ -4,6 +4,7 @@ import {
   ChartNoAxesColumn,
   House,
   Library,
+  CircleUserRound,
   Settings,
 } from "lucide-react";
 
@@ -18,6 +19,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/library", label: "Library", icon: Library },
   { href: "/study", label: "Study", icon: BookOpen },
   { href: "/progress", label: "Progress", icon: ChartNoAxesColumn },
+  { href: "/profile", label: "Profile", icon: CircleUserRound },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
