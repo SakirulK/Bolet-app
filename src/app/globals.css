@@ -1,0 +1,112 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --canvas: #f3f0e8;
+  --surface: #fffcf7;
+  --surface-2: #ebe6db;
+  --edge: #ddd6c8;
+  --edge-strong: #c9bfad;
+  --ink: #1c1915;
+  --muted: #6d6559;
+  --accent: #b5471d;
+  --accent-hover: #9a3c18;
+  --accent-fg: #fffaf4;
+  --danger: #b42318;
+}
+
+.dark {
+  --canvas: #12110f;
+  --surface: #1c1b18;
+  --surface-2: #26241f;
+  --edge: #35322b;
+  --edge-strong: #4a463c;
+  --ink: #f4efe6;
+  --muted: #a39a8c;
+  --accent: #e07a45;
+  --accent-hover: #ef8b58;
+  --accent-fg: #1a120e;
+  --danger: #f97066;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-edge: var(--edge);
+  --color-edge-strong: var(--edge-strong);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-geist-sans);
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+/* Flashcards: browser-native vertical pan stays available; only horizontal gestures
+   are owned by the card. No touch restrictions are applied to the page. */
+.study-card-stage { perspective: 1400px; width: 100%; }
+.study-swipe { position: relative; transition: transform 160ms ease-out; }
+.study-card {
+  height: clamp(280px, 43dvh, 500px);
+  border-radius: 1.75rem;
+  touch-action: pan-y pinch-zoom;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+.study-card-inner {
+  position: relative; height: 100%; width: 100%;
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(.2,.7,.2,1);
+}
+.study-card-inner.is-flipped { transform: rotateY(180deg); }
+.study-card-face {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; gap: 1rem; padding: clamp(1.25rem, 4vw, 3rem);
+  border: 1px solid var(--edge); border-radius: 1.75rem;
+  background: var(--surface); text-align: center;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  box-shadow: 0 12px 40px -24px color-mix(in srgb, var(--ink) 30%, transparent);
+}
+.study-card-back { transform: rotateY(180deg); background: var(--surface); }
+.study-card-content { touch-action: pan-y pinch-zoom; margin-block: auto; width: 100%; overflow-y: auto; min-height: 0; overscroll-behavior-y: contain; }
+.study-card-face[aria-hidden="true"] { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) {
+  .study-card-inner, .study-swipe { transition: none; }
+}
+
+.study-link { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; padding: .65rem 1rem; border: 1px solid var(--edge); border-radius: 1rem; background: var(--surface); font-size: .875rem; font-weight: 500; }
+.study-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+input, select, textarea { font-size: max(16px, 1rem); }
+main { overflow-wrap: anywhere; }
+body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: 0s !important; } }

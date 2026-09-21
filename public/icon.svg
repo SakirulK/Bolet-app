@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BOLET">
+  <rect width="512" height="512" rx="112" fill="#B5471D"/>
+  <rect x="118" y="132" width="220" height="280" rx="28" fill="#FFF7EE" opacity="0.35"/>
+  <rect x="174" y="100" width="220" height="280" rx="28" fill="#FFF7EE"/>
+  <rect x="206" y="148" width="156" height="18" rx="9" fill="#B5471D" opacity="0.85"/>
+  <rect x="206" y="186" width="120" height="14" rx="7" fill="#B5471D" opacity="0.4"/>
+  <rect x="206" y="216" width="140" height="14" rx="7" fill="#B5471D" opacity="0.28"/>
+</svg>

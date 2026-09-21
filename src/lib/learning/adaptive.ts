@@ -1,0 +1,21 @@
+export type CardPractice = { correctAttempts: number; incorrectAttempts: number; dontKnowCount: number; consecutiveCorrect: number };
+export type LearnState = { ids: string[]; queue: string[]; round: number; rounds: number; visits: Record<string, number>; stats: Record<string, CardPractice>; done: boolean };
+export function createLearnState(ids: string[], rounds: number): LearnState { return { ids, queue: [...ids], round: 1, rounds: Math.max(1, Math.min(10, rounds)), visits: {}, stats: {}, done: !ids.length }; }
+export function advanceLearn(state: LearnState, correct: boolean, dontKnow: boolean): LearnState {
+  const [id, ...queue] = state.queue;
+  if (!id || state.done) return state;
+  const old = state.stats[id] ?? { correctAttempts: 0, incorrectAttempts: 0, dontKnowCount: 0, consecutiveCorrect: 0 };
+  const stats = { ...state.stats, [id]: { correctAttempts: old.correctAttempts + Number(correct), incorrectAttempts: old.incorrectAttempts + Number(!correct), dontKnowCount: old.dontKnowCount + Number(dontKnow), consecutiveCorrect: correct ? old.consecutiveCorrect + 1 : 0 } };
+  const visits = { ...state.visits, [id]: (state.visits[id] ?? 0) + 1 };
+  // A miss always earns a later retry on its first visit in a round. Limit extra
+  // retries to one per round so a difficult card cannot trap the learner forever.
+  if (!correct && visits[id] < 2) queue.splice(Math.min(3, queue.length), 0, id);
+  let round = state.round, nextVisits = visits;
+  while (!queue.length && round < state.rounds) {
+    round++; nextVisits = {};
+    // Confident cards leave the working rotation, then return for a final check.
+    queue.push(...state.ids.filter(cardId => round === state.rounds || (stats[cardId]?.consecutiveCorrect ?? 0) < 2)
+      .sort((a, b) => (stats[b]?.dontKnowCount ?? 0) - (stats[a]?.dontKnowCount ?? 0)));
+  }
+  return { ...state, queue, round, visits: nextVisits, stats, done: !queue.length };
+}
