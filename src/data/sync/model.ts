@@ -12,7 +12,7 @@ export function baseline(type: EntityType, row: SyncRow): Envelope {
   const stamp = `${String(Number(row.updatedAt ?? row.createdAt ?? row.at ?? 0)).padStart(16, '0')}:legacy`;
   return { entityType: type, entityId: rowId(type, row), fields: Object.fromEntries(Object.entries(row).filter(([key, value]) => key !== '_sync' && value !== undefined).map(([key, value]) => [key, { stamp, value }])), versions: {} };
 }
-/** Field clocks preserve independent stars/content edits. Content revisions retain losing text. */
+/** Field clocks preserve star and content edits. Content revisions retain losing text. */
 export function mergeEnvelopes(a: Envelope, b: Envelope): Envelope {
   if (a.entityType !== b.entityType || a.entityId !== b.entityId) throw new Error('Mismatched sync identity');
   if (a.purged || b.purged) return { entityType: a.entityType, entityId: a.entityId, fields: {}, versions: {}, purged: true };

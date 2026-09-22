@@ -16,7 +16,7 @@ export async function saveDeck(input: DeckInput, deckId?: string, db: RecallDB =
       const old = draft.id ? byId.get(draft.id) : undefined;
       if (draft.id && (!old || old.deletedAt || old.purgedAt)) throw new Error("A card changed or was removed. Reopen the editor before saving.");
       return {
-        id: old?.id ?? crypto.randomUUID(), deckId: id, termStarred: false, definitionStarred: false,
+        id: old?.id ?? crypto.randomUUID(), deckId: id, starred: false, termStarred: false, definitionStarred: false,
         nextReviewAt: now, reviewCount: 0, correctStreak: 0, incorrectCount: 0, dontKnowCount: 0, masteryLevel: "New",
         createdAt: now, mastery: 0, ease: 2.5, intervalDays: 0,
         repetitions: 0, dueAt: now, ...old,

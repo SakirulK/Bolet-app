@@ -12,7 +12,7 @@ async function seed(page: Page) {
         const tx = db.transaction(['decks', 'cards'], 'readwrite');
         tx.objectStore('decks').put({ id: 'touch-deck', title: 'Computer basics', description: 'Touch practice', subject: 'Computing', createdAt: Date.now(), updatedAt: Date.now(), favorite: false });
         for (const [index, term, definition] of [[0, 'CPU', 'Central Processing Unit'], [1, 'RAM', 'Random Access Memory']] as const) {
-          tx.objectStore('cards').put({ id: `card-${index}`, deckId: 'touch-deck', term, definition, notes: index === 0 ? 'The processor runs instructions.' : '', position: index, termStarred: index === 0, definitionStarred: index === 0, nextReviewAt: Date.now(), reviewCount: 0, correctStreak: 0, incorrectCount: 0, dontKnowCount: 0, masteryLevel: "New", createdAt: Date.now(), updatedAt: Date.now(), mastery: 0, ease: 2.5, intervalDays: 0, repetitions: 0, dueAt: Date.now() });
+          tx.objectStore('cards').put({ id: `card-${index}`, deckId: 'touch-deck', term, definition, notes: index === 0 ? 'The processor runs instructions.' : '', position: index, starred: index === 0, termStarred: index === 0, definitionStarred: index === 0, nextReviewAt: Date.now(), reviewCount: 0, correctStreak: 0, incorrectCount: 0, dontKnowCount: 0, masteryLevel: "New", createdAt: Date.now(), updatedAt: Date.now(), mastery: 0, ease: 2.5, intervalDays: 0, repetitions: 0, dueAt: Date.now() });
         }
         tx.oncomplete = () => { db.close(); resolve(); };
         tx.onerror = () => reject(tx.error);
@@ -23,7 +23,7 @@ async function seed(page: Page) {
   await expect(page.getByTestId('flashcard')).toContainText('CPU');
 }
 async function answer(page: Page, known: boolean) {
-  const button = page.getByRole('button', { name: known ? 'Know' : 'Don’t Know', exact: true });
+  const button = page.getByRole('button', { name: known ? 'Know' : 'Still Learning', exact: true });
   await expect(button).toBeEnabled();
   await button.tap();
   await expect(page.getByRole('button', { name: 'Study settings' })).toBeEnabled();
@@ -64,10 +64,10 @@ test('iPad touch: flip, swipe, repeat missed cards, complete, review and persist
   await expect(page.getByRole('heading', { name: 'Session Complete' })).toBeVisible();
   await metric(page, 'Cards studied', '2');
   await metric(page, 'Accuracy', '80%');
-  await metric(page, 'Mastered', '2');
-  await metric(page, 'Still learning', '0');
+  await metric(page, 'Known', '1');
+  await metric(page, 'Still learning', '1');
   await page.screenshot({ path: 'test-results/session-complete-ipad.png', fullPage: true });
-  await page.getByRole('button', { name: 'Review Missed Cards' }).tap();
+  await page.getByRole('button', { name: 'Study 1 Again' }).tap();
   await expect(page.getByTestId('flashcard')).toContainText('CPU');
   await metric(page, 'Remaining', '1');
   await answer(page, true); await answer(page, true);
@@ -90,7 +90,7 @@ test('settings, keyboard, reduced motion, short gestures and early finish', asyn
   await page.getByRole('button', { name: 'Study settings' }).tap();
   await page.getByLabel('Shuffle cards (off = normal order)').check();
   await page.getByLabel('Card direction').selectOption('definition');
-  await page.getByRole('combobox', { name: 'Content', exact: true }).selectOption('terms');
+  await page.getByRole('combobox', { name: 'Content', exact: true }).selectOption('starred');
   await page.getByRole('button', { name: 'Apply & restart' }).tap();
   await expect(page.getByTestId('flashcard')).toHaveAttribute('aria-label', /Definition: Central Processing Unit/);
   await metric(page, 'Remaining', '1');
@@ -124,12 +124,12 @@ test('settings, keyboard, reduced motion, short gestures and early finish', asyn
 test('landscape, empty starred selection, random direction and mouse click', async ({ page }) => {
   await page.setViewportSize({ width: 1194, height: 834 });
   await seed(page);
-  await page.getByRole('button', { name: 'Unstar term' }).tap();
-  await expect(page.getByRole('button', { name: 'Star term', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Unstar card' }).tap();
+  await expect(page.getByRole('button', { name: 'Star card', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Study settings' }).tap();
-  await page.getByRole('combobox', { name: 'Content', exact: true }).selectOption('terms');
+  await page.getByRole('combobox', { name: 'Content', exact: true }).selectOption('starred');
   await page.getByRole('button', { name: 'Apply & restart' }).tap();
-  await expect(page.getByRole('heading', { name: 'No starred terms in this deck yet.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'No starred cards yet.' })).toBeVisible();
   await page.getByRole('button', { name: 'Study all cards' }).tap();
   await page.getByRole('button', { name: 'Study settings' }).tap();
   await page.getByLabel('Card direction').selectOption('random');

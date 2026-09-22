@@ -13,10 +13,11 @@ export type Card = DurableRecord & {
   /** Explicit aliases for the term when answering in reverse. */
   acceptedTermAnswers?: string[];
   position?: number;
-  /** Kept only for backwards-compatible backups; never used for new star controls. */
-  starred?: boolean;
-  termStarred: boolean;
-  definitionStarred: boolean;
+  /** One star applies to the whole term/definition pair. */
+  starred: boolean;
+  /** Legacy sync fields retained so older clients and backups remain readable. */
+  termStarred?: boolean;
+  definitionStarred?: boolean;
   lastReviewedAt?: number;
   nextReviewAt: number;
   reviewCount: number;

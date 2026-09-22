@@ -8,7 +8,7 @@ const { saveDeck, removeDeck } = load('src/data/decks.ts');
 const { getDb } = load('src/lib/db.ts');
 
 test('misses return later; only two consecutive recalls master a card', () => {
-  const cards = ['a', 'b', 'c', 'd', 'e'].map(id => ({ id, termStarred: id === 'a' }));
+  const cards = ['a', 'b', 'c', 'd', 'e'].map(id => ({ id, starred: id === 'a' }));
   let session = startSession('deck', cards, defaultStudyOptions, 100);
   session = answerSession(session, false, 200);
   assert.deepEqual(session.queue, ['b', 'c', 'd', 'a', 'e']);
@@ -18,6 +18,8 @@ test('misses return later; only two consecutive recalls master a card', () => {
   assert.ok(session.endedAt);
   assert.equal(sessionStats(session).mastered, 5);
   assert.equal(sessionStats(session).remaining, 0);
+  assert.equal(sessionStats(session).known, 4);
+  assert.equal(sessionStats(session).stillLearning, 1);
   assert.equal(session.correct, 10);
   assert.equal(session.incorrect, 1);
   assert.equal(sessionStats(session).accuracy, 91);
@@ -34,8 +36,8 @@ test('misses return later; only two consecutive recalls master a card', () => {
 });
 
 test('options filter stars, shuffle without loss, and leave source cards unchanged', () => {
-  const cards = ['a', 'b', 'c'].map(id => ({ id, termStarred: id === 'b' }));
-  const session = startSession('deck', cards, { shuffle: true, filter: "terms", direction: 'definition' });
+  const cards = ['a', 'b', 'c'].map(id => ({ id, starred: id === 'b' }));
+  const session = startSession('deck', cards, { shuffle: true, filter: "starred", direction: 'definition' });
   assert.deepEqual(session.queue, ['b']);
   assert.equal(session.options.direction, 'definition');
   const shuffled = startSession('deck', cards, { ...defaultStudyOptions, shuffle: true });

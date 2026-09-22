@@ -23,14 +23,14 @@ for (const count of ['5', '10', 'custom', 'all']) test(`Test question count ${co
 });
 for (const types of [['Multiple Choice'], ['Written Answer'], ['True / False'], ['Multiple Choice', 'Written Answer', 'True / False']]) {
   for (const direction of ['term', 'definition', 'mixed']) test(`Test ${types.join('+')} / ${direction}`, async ({ page }) => {
-    await seedStudy(page, 6); await openMode(page, 'test'); await chooseTypes(page, types); await page.getByLabel('Answer direction').selectOption(direction);
+    await seedStudy(page, 6); await openMode(page, 'test'); await chooseTypes(page, types); await page.getByLabel('Answer with').selectOption(direction);
     await page.getByRole('button', { name: 'Start Test' }).click(); await finishCorrect(page); await expect(page.getByRole('heading', { name: 'Test results' })).toBeVisible(); await metric(page, 'Percentage', '100%'); await metric(page, 'Total questions', '6');
   });
 }
-for (const [filter, count] of [['terms', 2], ['definitions', 2], ['any', 3]] as const) test(`Test star filter ${filter}, counts cannot exceed eligible material`, async ({ page }) => {
-  await seedStudy(page, 12); await openMode(page, 'test', `&filter=${filter}`); await expect(page.getByLabel('Number of questions').locator('option[value="5"]')).toHaveJSProperty('disabled', true);
-  await page.getByLabel('Number of questions').selectOption('custom'); await page.getByLabel('Custom question count').fill(String(count + 1)); await expect(page.getByRole('button', { name: 'Start Test' })).toBeDisabled();
-  await page.getByLabel('Custom question count').fill(String(count)); await page.getByRole('button', { name: 'Start Test' }).click(); await expect(page.getByRole('heading', { level: 1 })).toHaveText(`Question 1 of ${count}`);
+test('Test starred filter clamps custom count to eligible material', async ({ page }) => {
+  await seedStudy(page, 12); await openMode(page, 'test', '&filter=starred'); await expect(page.getByLabel('Number of questions').locator('option[value="5"]')).toHaveJSProperty('disabled', true);
+  await page.getByLabel('Number of questions').selectOption('custom'); await page.getByLabel('Custom question count').fill('9'); await expect(page.getByLabel('Custom question count')).toHaveValue('3');
+  await page.getByRole('button', { name: 'Start Test' }).click(); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Question 1 of 3');
 });
 for (const [name, smart, typos, answer, correct] of [
   ['strict exact', false, false, 'Central Processing Unit', true], ['strict typo', false, false, 'Central Procesing Unit', false],
@@ -38,7 +38,7 @@ for (const [name, smart, typos, answer, correct] of [
   ['alias off', false, true, 'Processor', false], ['smart without spelling tolerance', true, false, 'Mitocondria', false], ['smart with spelling tolerance', true, true, 'Mitocondria', true],
 ] as const) test(`Test grading ${name}`, async ({ page }) => {
   await seedStudy(page, 1); await openMode(page, 'test'); await chooseTypes(page, ['Written Answer']);
-  await page.getByLabel('Smart Grading', { exact: true }).setChecked(smart); await page.getByLabel('Allow minor spelling mistakes').setChecked(typos);
+  await page.getByLabel('Smart Grading', { exact: true }).setChecked(smart); await page.getByLabel('Spelling matters').setChecked(!typos);
   await page.getByRole('button', { name: 'Start Test' }).click(); await page.getByLabel('Your answer').fill(answer); await page.getByRole('button', { name: 'Finish Test' }).click();
   await metric(page, 'Correct', correct ? '1' : '0');
 });
@@ -53,7 +53,7 @@ test('Test manual grading, unanswered warning, navigation, result stars and inco
   const rows = page.locator('ol > li'); await rows.nth(0).getByRole('button', { name: 'Correct', exact: true }).click();
   for (const i of [1, 2]) await rows.nth(i).getByRole('button', { name: 'Incorrect', exact: true }).click();
   await page.getByRole('button', { name: 'Save Results' }).click(); await metric(page, 'Correct', '1'); await metric(page, 'Incorrect', '2');
-  const first = page.locator('ol > li').first(); await first.getByRole('button', { name: 'Unstar term' }).click(); await first.getByRole('button', { name: 'Star definition' }).click();
+  const first = page.locator('ol > li').first(); await first.getByRole('button', { name: 'Unstar card' }).click(); await first.getByRole('button', { name: 'Star card' }).click();
   const learnHref = await page.getByRole('link', { name: 'Learn Incorrect', exact: true }).getAttribute('href'); const flashHref = await page.getByRole('link', { name: 'Flashcards for Incorrect', exact: true }).getAttribute('href');
   expect(learnHref).toContain('ids=c1%2Cc2'); expect(flashHref).toContain('mode=flashcards');
   await page.getByRole('button', { name: 'Test Incorrect', exact: true }).click(); await expect(page.getByRole('heading', { level: 1 })).toHaveText('Question 1 of 2');
@@ -66,8 +66,8 @@ test('Test mixed objective manual review records known answers consistently', as
   for (const row of await page.locator('ol > li').all()) { await expect(row.getByText('Objective result: Correct')).toBeVisible(); await row.getByRole('button', { name: 'Correct', exact: true }).click(); }
   await page.getByRole('button', { name: 'Save Results' }).click(); await metric(page, 'Percentage', '100%');
 });
-test('Test exact definition prompt and answer-side star in results', async ({ page }) => {
-  await seedStudy(page, 1); await openMode(page, 'test'); await chooseTypes(page, ['Written Answer']); await page.getByLabel('Answer direction').selectOption('definition');
+test('Test exact definition prompt and card star in results', async ({ page }) => {
+  await seedStudy(page, 1); await openMode(page, 'test'); await chooseTypes(page, ['Written Answer']); await page.getByLabel('Answer with').selectOption('definition');
   await page.getByRole('button', { name: 'Start Test' }).click(); await expect(page.getByRole('heading', { level: 2 })).toHaveText(definitions[0]); await page.getByLabel('Your answer').fill('CPU'); await page.getByRole('button', { name: 'Finish Test' }).click();
-  await expect(page.getByRole('button', { name: 'Star definition', exact: true })).toBeVisible(); await expect(page.getByRole('button', { name: 'Unstar term', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Unstar card', exact: true })).toBeVisible();
 });

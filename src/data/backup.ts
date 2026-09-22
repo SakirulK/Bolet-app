@@ -30,8 +30,9 @@ export function validateBackup(input: unknown): Backup {
       if (strings.some(key => typeof row[key] !== 'string')) fail(`missing ${type} content`);
       const numbers = type === 'cards' ? ['createdAt','updatedAt','mastery','ease','intervalDays','repetitions','dueAt','nextReviewAt','reviewCount','correctStreak','incorrectCount','dontKnowCount'] : type === 'decks' ? ['createdAt','updatedAt'] : type === 'prefs' ? ['dailyGoal'] : type === 'activity' ? ['cardsStudied'] : type === 'events' ? ['at','durationMs'] : type === 'history' ? ['startedAt','updatedAt','correct','incorrect','dontKnow','durationMs','rounds'] : ['startedAt','updatedAt','correct','incorrect','revision'];
       if (numbers.some(key => typeof row[key] !== 'number' || !Number.isFinite(row[key]) || (row[key] as number) < 0)) fail(`missing ${type} numbers`);
-      const booleans = type === 'cards' ? ['termStarred','definitionStarred'] : type === 'decks' ? ['favorite'] : type === 'events' ? ['correct','dontKnow','mastered'] : [];
+      const booleans = type === 'decks' ? ['favorite'] : type === 'events' ? ['correct','dontKnow','mastered'] : [];
       if (booleans.some(key => typeof row[key] !== 'boolean')) fail(`invalid ${type} flags`);
+      if (type === 'cards' && ['starred','termStarred','definitionStarred'].some(key => row[key] !== undefined && typeof row[key] !== 'boolean')) fail('invalid cards flags');
       for (const key of ['acceptedAnswers','acceptedTermAnswers','studiedIds','difficultIds','masteredIds','missedIds','queue','cardIds']) {
         if (row[key] !== undefined && (!Array.isArray(row[key]) || (row[key] as unknown[]).some(value => typeof value !== 'string'))) fail(`invalid ${key}`);
       }

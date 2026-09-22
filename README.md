@@ -40,17 +40,18 @@ through the BrainBo rename.
 ## Learn grading and rounds
 
 Learn and Test share deterministic, local grading utilities. Basic grading ignores
-capitalization, extra whitespace, and harmless punctuation. **Allow minor spelling
-mistakes** enables conservative typo matching; it does not enable aliases.
+capitalization, extra whitespace, and harmless punctuation. Turning **Spelling
+matters** off enables conservative typo matching; it does not enable aliases.
 **Smart Grading** accepts explicit aliases entered under a card’s optional accepted
-answers. Definition aliases and term aliases are separate. No synonyms,
-abbreviations, or paraphrases are inferred. To accept an optional parenthetical
-form, add that exact form as an alias.
+answers and uses a conservative local concept comparison for sentence-length
+answers. It never requires a network or paid service. Definition aliases and term
+aliases remain separate. To accept an abbreviation or optional parenthetical form,
+add that exact form as an alias.
 
 Learn offers **I was correct** only after an automatically rejected written answer.
 The final override is saved when continuing and replaces the rejection in both
 statistics and scheduling. Don’t Know cannot be overridden. Retyping alone does
-not change a result. Both sides can be starred on the feedback screen.
+not change a result. One persistent star applies to the whole card pair.
 
 Every selected round contains questions. Confident cards receive less practice;
 when all cards are confident, a rotating maintenance card keeps intermediate

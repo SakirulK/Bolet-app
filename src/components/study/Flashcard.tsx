@@ -59,7 +59,7 @@ export function Flashcard({ card, direction, firstSide, flipped, onFlip, onGrade
           })}
         </div>
       </div>
-      {!!drag && <div aria-hidden className={`pointer-events-none absolute inset-x-0 top-5 text-center text-sm font-semibold ${drag > 0 ? "text-accent" : "text-danger"}`}>{drag > 0 ? "Know →" : "← Don’t Know"}</div>}
+      {!!drag && <div aria-hidden className={`pointer-events-none absolute inset-x-0 top-5 text-center text-sm font-semibold ${drag > 0 ? "text-accent" : "text-danger"}`}>{drag > 0 ? "Know →" : "← Still Learning"}</div>}
     </div>
   </div>;
 }

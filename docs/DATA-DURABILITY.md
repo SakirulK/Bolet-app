@@ -19,7 +19,7 @@ Official references: [Supabase email/password authentication](https://supabase.c
 
 ## IndexedDB migration and write guarantees
 
-The existing database remains **`recall`**. Version 4 only adds `syncQueue` and `syncMeta`; versions 1–3 remain intact. Existing IDs, stars, aliases, scheduling, sessions, events, history and preferences are preserved. Version 3's legacy single-star migration still maps a starred card to both side stars.
+The existing database remains **`recall`**. Version 4 adds `syncQueue` and `syncMeta`; version 5 consolidates earlier term/definition stars into one card-level star without removing either compatibility field. Versions 1–4 remain intact. Existing IDs, stars, aliases, scheduling, sessions, events, history and preferences are preserved. Older cards with either side starred become starred cards.
 
 The data-layer journal extends each native read/write transaction to include the outbox. Dexie create/update hooks save field-version metadata and the pending mutation in **the same IndexedDB transaction**. A failed transaction rolls back both. No database replacement, expiry policy, quota cleanup or automatic deck/card deletion is used. Raw row deletion is rejected by the journal; backup replacement is the deliberate, separately confirmed exception.
 
@@ -39,7 +39,7 @@ Before first binding, existing device data requires an explicit merge choice. Th
 
 ## Conflicts and study progress
 
-Each ordinary field has a logical timestamp plus UUID tie-breaker. A local write advances beyond clocks already seen. Different fields merge independently, including term/definition stars. Concurrent changes to the same field choose the greater version deterministically. Text and alias revisions are retained in `_sync.versions` and included in full backups rather than silently discarding the losing content. There is no revision-management UI in this release.
+Each ordinary field has a logical timestamp plus UUID tie-breaker. A local write advances beyond clocks already seen. Card-level star changes also mirror the legacy star fields so older synced clients remain coherent. Concurrent changes to the same field choose the greater version deterministically. Text and alias revisions are retained in `_sync.versions` and included in full backups rather than silently discarding the losing content. There is no revision-management UI in this release.
 
 Study events retain unique IDs and are additive/idempotent. Scheduling uses a retained baseline and replays subsequent events ordered by timestamp then ID through the **existing scheduler**. Thus concurrent offline practice does not drop one device's attempts or double-count retries. Existing pre-sync mastery is retained. Progress analytics use the event/history records, not an invented aggregate.
 

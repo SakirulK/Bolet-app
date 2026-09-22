@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { load } from './load-ts.mjs';
-const { normalizeAnswer, gradeSpelling, gradeSmartAnswer, gradeWrittenAnswer, calculateSimilarity } = load('src/lib/learning/grading.ts');
+const { normalizeAnswer, gradeSpelling, gradeSmartAnswer, gradeSemanticAnswer, gradeWrittenAnswer, calculateSimilarity } = load('src/lib/learning/grading.ts');
 const exact = {}, typo = { allowMinorSpellingMistakes: true }, smart = { smartGrading: true };
 for (const [name, answer, expected, options, correct] of [
   ['exact answer', 'Central Processing Unit', 'Central Processing Unit', exact, true],
@@ -17,6 +17,8 @@ for (const [name, answer, expected, options, correct] of [
   ['no inferred abbreviation', 'CPU', 'Central Processing Unit', smart, false],
   ['optional parenthetical must be explicit', 'Washington, D.C.', 'Washington, D.C. (United States)', smart, false],
   ['explicit optional form', 'Washington, D.C.', 'Washington, D.C. (United States)', { ...smart, acceptedAnswers: ['Washington, D.C.'] }, true],
+  ['local semantic equivalence', 'Plants use sunlight to create chemical energy.', 'Plants convert light energy into chemical energy.', smart, true],
+  ['semantic grading remains conservative', 'Plants absorb water through their roots.', 'Plants convert light energy into chemical energy.', smart, false],
   ['different numbers', '12.5', '12.6', { ...smart, ...typo }, false],
   ['different sign', '-12', '+12', typo, false],
   ['negation matters', 'does not produce energy', 'does produce energy', typo, false],
@@ -30,5 +32,6 @@ test('utilities separate normalization, spelling and smart aliases', () => {
   assert.equal(normalizeAnswer('  Philadelphia! '), 'philadelphia');
   assert.equal(gradeSpelling('CPU', 'Central Processing Unit', true), false);
   assert.equal(gradeSmartAnswer('CPU', 'Central Processing Unit', ['CPU']), true);
+  assert.equal(gradeSemanticAnswer('Plants use sunlight to create chemical energy', 'Plants convert light energy into chemical energy'), true);
   assert.equal(calculateSimilarity('mitochondria', 'mitocondria') > .9, true);
 });

@@ -10,7 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { studyAnalytics } from "@/lib/learning/analytics";
-import type { Side } from "@/lib/learning/content";
+import { isCardStarred } from "@/lib/learning/content";
 import { getDb } from "@/lib/db";
 import { saveDeck, removeDeck } from "@/data/decks";
 import { liveQuery } from "dexie";
@@ -34,7 +34,7 @@ type StoreValue = {
   updateDeck: (deckId: string, input: DeckInput) => Promise<void>;
   deleteDeck: (deckId: string) => Promise<void>;
   setProfile: (name: string, goal: number) => Promise<void>;
-  toggleStarCard: (cardId: string, side: Side) => Promise<void>;
+  toggleStarCard: (cardId: string) => Promise<void>;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -182,12 +182,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
-  const toggleStarCard = useCallback(async (cardId: string, side: Side) => {
+  const toggleStarCard = useCallback(async (cardId: string) => {
     const db = getDb();
     await db.transaction("rw", db.cards, async () => {
       const card = await db.cards.get(cardId);
       if (!card || card.deletedAt || card.purgedAt) throw new Error("This card was deleted.");
-      await db.cards.update(cardId, side === "term" ? { termStarred: !card.termStarred, updatedAt: Date.now() } : { definitionStarred: !card.definitionStarred, updatedAt: Date.now() });
+      const starred = !isCardStarred(card);
+      await db.cards.update(cardId, { starred, termStarred: starred, definitionStarred: starred, updatedAt: Date.now() });
     });
     await refresh();
   }, [refresh]);

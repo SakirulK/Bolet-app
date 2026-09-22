@@ -10,7 +10,7 @@ export type Session = {
   correct: number; incorrect: number; revision: number;
 };
 export function startSession(deckId: string, cards: Card[], options: StudyOptions, now = Date.now()): Session {
-  const cardIds = filterCards(cards, options.filter ?? (options.starredOnly ? "any" : "all")).map(card => card.id);
+  const cardIds = filterCards(cards, options.filter ?? (options.starredOnly ? "starred" : "all")).map(card => card.id);
   if (options.shuffle) {
     for (let i = cardIds.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -35,7 +35,9 @@ export function answerSession(session: Session, known: boolean, now = Date.now()
 export function sessionStats(session: Session) {
   const attempts = session.correct + session.incorrect;
   const mastered = session.cardIds.filter(id => (session.streaks[id] ?? 0) >= 2).length;
+  const stillLearning = session.missedIds.length;
   return { attempts, mastered, remaining: session.cardIds.length - mastered,
+    known: session.cardIds.length - stillLearning, stillLearning,
     studied: session.studiedIds.length, accuracy: attempts ? Math.round(session.correct / attempts * 100) : 0,
     durationMs: Math.max(0, (session.endedAt ?? session.updatedAt) - session.startedAt) };
 }

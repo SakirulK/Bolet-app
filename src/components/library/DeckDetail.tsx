@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { StarButton } from "@/components/learning/StarButton";
-import { studyUrl } from "@/lib/learning/content";
+import { isCardStarred, studyUrl } from "@/lib/learning/content";
 import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { exportDeck } from "@/lib/deck-transfer";
@@ -45,6 +45,7 @@ export function DeckDetail({ deckId }: { deckId: string }) {
   }
 
   const mastery = masteryForDeck(deck.id);
+  const starredCount = deck.cards.filter(isCardStarred).length;
   const currentDeckId = deck.id;
   async function handleDelete() {
     if (deleting) return;
@@ -75,20 +76,24 @@ export function DeckDetail({ deckId }: { deckId: string }) {
               />
               {deck.favorite ? "Favorited" : "Favorite"}
             </Button>
-            <Button disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id))}>Flashcards</Button>
-            <Button variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "learn"))}>Learn</Button>
-            <Button variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "test"))}>Test</Button>
-            <Button variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "match"))}>Match</Button>
             <Button variant="secondary" onClick={() => setEditing(true)}>Edit deck</Button>
           </>
         }
       />
 
-      <div className="rounded-2xl border border-edge bg-surface p-5">
+      <div className="space-y-5 rounded-2xl border border-edge bg-surface p-5">
+        <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+          <span><strong className="text-ink">{deck.cards.length}</strong> {deck.cards.length === 1 ? "term" : "terms"}</span>
+          <span><strong className="text-ink">{starredCount}</strong> starred</span>
+        </div>
         <ProgressBar value={mastery} label="Mastery" />
-        <p className="mt-3 text-sm text-muted">
-          {deck.cards.length} {deck.cards.length === 1 ? "term" : "terms"}
-        </p>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Button size="lg" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id))}>Flashcards</Button>
+          <Button size="lg" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "learn"))}>Learn</Button>
+          <Button size="lg" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "test"))}>Test</Button>
+          <Button size="lg" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "match"))}>Match</Button>
+        </div>
+        {starredCount > 0 && <Button variant="ghost" onClick={() => router.push(studyUrl(deck.id, "flashcards", undefined, "starred"))}><Star className="h-4 w-4 fill-accent text-accent" />Study {starredCount} Starred</Button>}
       </div>
 
       {deck.cards.length === 0 ? (
@@ -96,7 +101,9 @@ export function DeckDetail({ deckId }: { deckId: string }) {
           Your next learning session starts with a card. Edit this deck to add terms or import a list.
         </p>
       ) : (
-        <ul className="space-y-3">
+        <section className="space-y-3">
+          <h2 className="font-display text-2xl">Terms in this set</h2>
+          <ul className="space-y-3">
           {deck.cards.map((card) => (
             <li
               key={card.id}
@@ -109,15 +116,16 @@ export function DeckDetail({ deckId }: { deckId: string }) {
                   </p>
                   <p className="mt-1 whitespace-pre-wrap break-words font-medium text-ink">{card.term}</p>
                 </div>
-                <StarButton card={card} side="term" />
+                <StarButton card={card} />
               </div>
-              <div className="mt-3 flex items-start justify-between gap-3"><p className="whitespace-pre-wrap break-words text-base leading-6 text-muted">{card.definition}</p><StarButton card={card} side="definition" /></div>
+              <p className="mt-3 whitespace-pre-wrap break-words text-base leading-6 text-muted">{card.definition}</p>
               {card.notes ? (
                 <p className="mt-2 text-sm text-ink/80">{card.notes}</p>
               ) : null}
             </li>
           ))}
-        </ul>
+          </ul>
+        </section>
       )}
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}

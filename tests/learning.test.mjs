@@ -6,7 +6,7 @@ const { recommendRounds } = load('src/lib/learning/recommendation.ts');
 const { filterCards, shuffled } = load('src/lib/learning/content.ts');
 const { makeQuestion, buildTest } = load('src/lib/learning/questions.ts');
 const { calculateNextReview } = load('src/lib/learning/scheduling.ts');
-const cards = Array.from({ length: 12 }, (_, i) => ({ id: String(i), term: `Term ${i}`, definition: `Definition ${i}`, termStarred: i < 2, definitionStarred: i === 1 || i === 2, reviewCount: 0, mastery: 0 }));
+const cards = Array.from({ length: 12 }, (_, i) => ({ id: String(i), term: `Term ${i}`, definition: `Definition ${i}`, starred: i < 3, reviewCount: 0, mastery: 0 }));
 for (let rounds = 1; rounds <= 10; rounds++) test(`${rounds} selected rounds all contain actual questions and are counted truthfully`, () => {
   let state = createLearnState(cards.slice(0, 4).map(card => card.id), rounds);
   const visits = new Map(); let attempts = 0;
@@ -33,11 +33,9 @@ test('misses and Don’t Know return later without infinite loops; overrides do 
   const override = advanceLearn(createLearnState(['a', 'b'], 1), true, false);
   assert.deepEqual(override.queue, ['b']); assert.equal(override.stats.a.incorrectAttempts, 0);
 });
-test('star filters are independent and shuffle retains membership', () => {
+test('card-level starred filtering and shuffle retain membership without mutating source order', () => {
   assert.equal(filterCards(cards, 'all').length, 12);
-  assert.deepEqual(filterCards(cards, 'terms').map(card => card.id), ['0', '1']);
-  assert.deepEqual(filterCards(cards, 'definitions').map(card => card.id), ['1', '2']);
-  assert.equal(filterCards(cards, 'any').length, 3);
+  assert.deepEqual(filterCards(cards, 'starred').map(card => card.id), ['0', '1', '2']);
   assert.deepEqual(shuffled(cards).map(card => card.id).sort(), cards.map(card => card.id).sort());
 });
 test('recommendations are bounded and only very weak evidence recommends ten', () => {

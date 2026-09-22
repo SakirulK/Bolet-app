@@ -53,7 +53,7 @@ test('first login requires consent, network errors retain local data, reconnect 
   await assert.rejects(synchronize(a,server,'other-account',true),/another account/); assert.equal(await a.cards.count(),2);
 }));
 
-test('two devices merge term edits, independent stars and additive offline study without duplicates', () => devices(async(a,b,server) => {
+test('two devices merge term edits, legacy star fields and additive offline study without duplicates', () => devices(async(a,b,server) => {
   const id=await saveDeck(input,undefined,a); await synchronize(a,server,'u',true); await synchronize(b,server,'u');
   const card=(await b.cards.toArray())[0]; await b.cards.update(card.id,{definitionStarred:true}); await synchronize(b,server,'u'); await synchronize(a,server,'u');
   assert.equal((await a.cards.get(card.id)).definitionStarred,true);

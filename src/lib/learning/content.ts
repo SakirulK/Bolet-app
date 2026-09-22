@@ -1,13 +1,20 @@
 import type { Card } from "@/types";
 export type Side = "term" | "definition";
-export type ContentFilter = "all" | "terms" | "definitions" | "any";
+export type ContentFilter = "all" | "starred";
+export type LegacyContentFilter = ContentFilter | "terms" | "definitions" | "any";
 export type Direction = "term" | "definition" | "mixed";
-export const contentLabels: Record<ContentFilter, string> = { all: "All cards", terms: "Starred terms only", definitions: "Starred definitions only", any: "Any starred" };
-export function filterCards(cards: Card[], filter: ContentFilter = "all") {
-  return cards.filter(card => filter === "all" || (filter === "terms" ? card.termStarred : filter === "definitions" ? card.definitionStarred : card.termStarred || card.definitionStarred));
+export const contentLabels: Record<ContentFilter, string> = { all: "All cards", starred: "Starred only" };
+export function isCardStarred(card: Pick<Card, "starred" | "termStarred" | "definitionStarred">) {
+  return !!(card.starred || card.termStarred || card.definitionStarred);
 }
-export function emptyContent(filter: ContentFilter) {
-  return filter === "terms" ? "No starred terms in this deck yet." : filter === "definitions" ? "No starred definitions in this deck yet." : filter === "any" ? "No starred terms or definitions in this deck yet." : "This deck has no cards yet.";
+export function normalizeContentFilter(filter: string): ContentFilter {
+  return filter === "starred" || filter === "terms" || filter === "definitions" || filter === "any" ? "starred" : "all";
+}
+export function filterCards(cards: Card[], filter: LegacyContentFilter = "all") {
+  return cards.filter(card => filter === "all" || isCardStarred(card));
+}
+export function emptyContent(filter: LegacyContentFilter) {
+  return filter === "all" ? "This deck has no cards yet." : "No starred cards yet.";
 }
 export function shuffled<T>(items: T[]): T[] {
   const copy = [...items];

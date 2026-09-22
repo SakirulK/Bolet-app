@@ -14,7 +14,7 @@ export async function seedStudy(page: Page, count = 6, deckCount = 1) {
           const deckId = d === 0 ? 'learn-deck' : `deck-${d}`;
           tx.objectStore('decks').put({ id: deckId, title: d === 0 ? 'Biology & Computing' : `Practice deck ${d}`, description: 'Real study workflow fixture', subject: 'Science', createdAt: Date.now() + d, updatedAt: Date.now(), favorite: false });
           for (let i = 0; i < count; i++) tx.objectStore('cards').put({ id: d === 0 ? `c${i}` : `d${d}c${i}`, deckId, term: terms[i % terms.length] + (i >= terms.length ? ` ${i}` : ''), definition: definitions[i % definitions.length], position: i,
-            termStarred: i === 0 || i === 2, definitionStarred: i === 1 || i === 2,
+            starred: i < 3, termStarred: i < 3, definitionStarred: i < 3,
             acceptedAnswers: i === 0 ? ['Processor', 'Mitochondria'] : [], acceptedTermAnswers: i === 0 ? ['Processing chip'] : [],
             createdAt: Date.now(), updatedAt: Date.now(), mastery: 0, ease: 2.5, repetitions: 0, intervalDays: 0, dueAt: Date.now(), nextReviewAt: Date.now(), reviewCount: 0, correctStreak: 0, incorrectCount: 0, dontKnowCount: 0, masteryLevel: 'New' });
         }

@@ -48,6 +48,14 @@ export class RecallDB extends Dexie {
       }
     });
     this.version(4).stores({ syncQueue: "id, entityType, updatedAt", syncMeta: "id" });
+    this.version(5).stores({
+      cards: "id, deckId, dueAt, nextReviewAt, masteryLevel",
+    }).upgrade(tx => tx.table("cards").toCollection().modify(card => {
+      card.starred = !!(card.starred || card.termStarred || card.definitionStarred);
+      // Keep old clients coherent without exposing separate stars in BrainBo.
+      card.termStarred = card.starred;
+      card.definitionStarred = card.starred;
+    }));
     installJournal(this);
   }
 }
