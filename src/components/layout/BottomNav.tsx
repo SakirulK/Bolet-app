@@ -11,7 +11,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Main"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface/95 backdrop-blur-md lg:hidden"
+      className="mobile-dock fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface/95 backdrop-blur-md lg:hidden"
       style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom))" }}
     >
       <ul className="mx-auto grid max-w-2xl grid-cols-6">
@@ -25,7 +25,7 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-inset",
-                  active ? "text-accent" : "text-muted",
+                  active ? "rounded-2xl bg-accent/10 text-accent" : "text-muted",
                 )}
               >
                 <Icon className="h-5 w-5" aria-hidden />

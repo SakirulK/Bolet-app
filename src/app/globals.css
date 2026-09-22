@@ -3,7 +3,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --canvas: #f3f0e8;
+  --canvas: #f5f2ec;
   --surface: #fffcf7;
   --surface-2: #ebe6db;
   --edge: #ddd6c8;
@@ -109,4 +109,50 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 input, select, textarea { font-size: max(16px, 1rem); }
 main { overflow-wrap: anywhere; }
 body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
+
+/* Presentation only: these surfaces do not alter study gestures or layout ownership. */
+.brand-mark {
+  box-shadow: inset 0 1px 0 #ffffff35, 0 5px 12px -6px var(--accent);
+  border-radius: 14px 14px 14px 5px;
+}
+.app-sidebar { background: linear-gradient(180deg, var(--surface), var(--canvas)); }
+.sidebar-link[aria-current="page"] { box-shadow: inset 3px 0 0 var(--accent); }
+.mobile-dock { box-shadow: 0 -8px 30px -18px color-mix(in srgb, var(--ink) 25%, transparent); }
+.mobile-dock ul { padding: .4rem .5rem 0; gap: .15rem; }
+.ui-button { transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
+.ui-button-primary { box-shadow: inset 0 1px 0 #ffffff25, 0 4px 10px -6px var(--accent); }
+.ui-button:active:not(:disabled) { transform: translateY(1px); }
+.stat-panel { box-shadow: 0 3px 12px -8px color-mix(in srgb, var(--ink) 16%, transparent); }
+.review-panel { background: linear-gradient(115deg, var(--surface), color-mix(in srgb, var(--accent) 5%, var(--surface))); }
+.deck-tile { border-radius: 1.3rem; border-top: 3px solid color-mix(in srgb, var(--accent) 50%, var(--edge)); transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease; }
+.deck-tile:focus-within { border-color: var(--accent); }
+@media (hover: hover) and (pointer: fine) {
+  .deck-tile:hover { transform: translateY(-3px); box-shadow: 0 14px 26px -18px color-mix(in srgb, var(--ink) 35%, transparent); }
+}
+.dashboard-hero {
+  position: relative; isolation: isolate; overflow: hidden;
+  padding: clamp(1.5rem, 4vw, 3rem); border-radius: 1.75rem;
+  background: radial-gradient(ellipse at 90% 10%, #6c6750 0, transparent 55%), #263d36;
+  color: #fff9ed; box-shadow: 0 16px 35px -25px #18302970;
+}
+.hero-eyebrow { font-size: .65rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: #d9dfc4; }
+.hero-action { background: #f6e8c8; color: #263d36; box-shadow: none; }
+.hero-action:hover { background: #fff3db; }
+.hero-art { position: absolute; inset: 0 0 0 auto; width: 34%; pointer-events: none; display: none; }
+.hero-orbit { position: absolute; width: 330px; height: 330px; border: 1px solid #ffffff20; border-radius: 50%; top: -70px; right: -90px; }
+.hero-orbit::after { content: ""; position: absolute; inset: 25px; border: 1px solid #ffffff15; border-radius: inherit; }
+.hero-paper { position: absolute; width: 165px; height: 210px; border-radius: 16px; top: 25%; right: 40px; }
+.hero-paper-back { background: #ba7251; transform: rotate(13deg) translate(16px, -8px); }
+.hero-paper-front { background: #eee4cb; color: #344b3d; transform: rotate(-9deg); padding: 24px 19px; box-shadow: 0 20px 30px -15px #10231c70; }
+.hero-paper-front > span:first-child { font-size: 12px; }
+.hero-paper-front strong { display: block; font-family: var(--font-display); font-size: 27px; font-weight: 400; margin-top: 4px; }
+.hero-paper-star { display: block; font-size: 64px; line-height: 1.5; color: #a44a2c; }
+@media (min-width: 768px) {
+  .dashboard-hero > div:first-child { max-width: 65%; }
+  .hero-art { display: block; }
+}
+.auth-backdrop { background-image: radial-gradient(ellipse at 10% 10%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 55%), radial-gradient(ellipse at 90% 90%, color-mix(in srgb, var(--ink) 6%, transparent), transparent 55%); }
+.auth-panel { box-shadow: 0 24px 70px -40px color-mix(in srgb, var(--ink) 40%, transparent); }
+.study-card-face { border-top-color: color-mix(in srgb, var(--accent) 45%, var(--edge)); box-shadow: 0 20px 50px -30px color-mix(in srgb, var(--ink) 35%, transparent); }
+
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: 0s !important; } }

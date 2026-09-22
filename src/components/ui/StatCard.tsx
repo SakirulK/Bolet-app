@@ -19,7 +19,7 @@ export function StatCard({
   return (
     <article
       className={cn(
-        "rounded-2xl border border-edge bg-surface p-4 shadow-sm sm:p-5",
+        "stat-panel rounded-2xl border border-edge bg-surface p-4 shadow-sm sm:p-5",
         className,
       )}
     >

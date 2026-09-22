@@ -67,21 +67,21 @@ export function HomeDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-sm font-medium text-accent">{greeting}</p>
-          <h1 className="mt-1 font-display text-3xl tracking-tight sm:text-4xl">
+      <div className="dashboard-hero">
+        <div className="relative z-10 max-w-xl">
+          <p className="hero-eyebrow">Your space to grow · {greeting}</p>
+          <h1 className="mt-4 font-display text-4xl leading-[1.08] tracking-tight sm:text-5xl">
             {prefs.displayName && prefs.displayName !== "there" ? `Ready when you are, ${prefs.displayName}.` : "Ready when you are."}
           </h1>
-          <p className="mt-2 max-w-xl text-base leading-7 text-muted">
-            Pick up a deck, keep the streak, or start something new. Your decks
-            are available offline, with optional account sync.
+          <p className="mt-4 max-w-sm text-base leading-7 text-white/75">
+            A little curiosity. A little practice. Make room for what you’ll learn next.
           </p>
-        </div>
-        <Button size="lg" onClick={() => setCreateOpen(true)}>
+        <Button size="lg" className="hero-action mt-6" onClick={() => setCreateOpen(true)}>
           <Plus className="h-5 w-5" aria-hidden />
           Create deck
         </Button>
+        </div>
+        <div className="hero-art" aria-hidden="true"><div className="hero-orbit" /><div className="hero-paper hero-paper-back" /><div className="hero-paper hero-paper-front"><span>Small steps.</span><strong>Big ideas.</strong><span className="hero-paper-star">✳</span></div></div>
       </div>
 
       <SearchBar
@@ -107,7 +107,7 @@ export function HomeDashboard() {
             value={`${todayCount}`}
             hint="Cards reviewed"
           />
-          <article className="col-span-2 rounded-2xl border border-edge bg-surface p-4 shadow-sm sm:p-5">
+          <article className="stat-panel col-span-2 rounded-2xl border border-edge bg-surface p-4 shadow-sm sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-muted">Daily study goal</p>
@@ -125,7 +125,7 @@ export function HomeDashboard() {
         </div>
       </section>
 
-      <section className="space-y-4 border-y border-edge py-6">
+      <section className="review-panel space-y-4 rounded-3xl border border-edge p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-display text-2xl">Due Today</h2><p className="mt-1 text-muted">{due.length} due cards · {due.length ? `about ${estimateReviewTime(due.length)} min` : "You’re up to date"}</p></div><a className="study-link" href="/review">{due.length ? "Start Review" : "View Review"}</a></div>
         <Metrics values={(["New", "Learning", "Familiar", "Mastered"] as const).map(level => [level, allCards.filter(card => card.masteryLevel === level).length])} />
       </section>
