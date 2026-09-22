@@ -1,8 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BrainBo">
-  <rect width="512" height="512" rx="112" fill="#B5471D"/>
-  <rect x="118" y="132" width="220" height="280" rx="28" fill="#FFF7EE" opacity="0.35"/>
-  <rect x="174" y="100" width="220" height="280" rx="28" fill="#FFF7EE"/>
-  <rect x="206" y="148" width="156" height="18" rx="9" fill="#B5471D" opacity="0.85"/>
-  <rect x="206" y="186" width="120" height="14" rx="7" fill="#B5471D" opacity="0.4"/>
-  <rect x="206" y="216" width="140" height="14" rx="7" fill="#B5471D" opacity="0.28"/>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07090C"/><stop offset="1" stop-color="#294865"/></linearGradient></defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="118" y="132" width="220" height="280" rx="28" fill="#7DA6CF" opacity="0.32"/>
+  <rect x="174" y="100" width="220" height="280" rx="28" fill="#F4F7FA"/>
+  <rect x="206" y="148" width="156" height="18" rx="9" fill="#294865" opacity="0.92"/>
+  <rect x="206" y="186" width="120" height="14" rx="7" fill="#527CA8" opacity="0.52"/>
+  <rect x="206" y="216" width="140" height="14" rx="7" fill="#527CA8" opacity="0.32"/>
 </svg>

@@ -25,4 +25,4 @@ export function AuthFrame({ title, description, children }: {
   );
 }
 
-export const authField = "mt-1.5 h-12 w-full rounded-2xl border border-edge bg-surface px-4 text-base outline-none focus-visible:ring-2 focus-visible:ring-accent/40";
+export const authField = "mt-1.5 h-12 w-full rounded-xl border border-edge bg-surface px-4 text-base outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20";

@@ -25,8 +25,8 @@ export function DataSettings() {
     try { await action(); } catch (error) { setMessage(error instanceof Error ? error.message : String((error as {message?: string}).message ?? error)); }
     finally { setBusy(false); }
   }
-  const field = 'mt-1 w-full rounded-xl border border-edge bg-canvas p-3 text-base';
-  return <>
+  const field = 'mt-1 w-full rounded-xl border border-edge bg-surface-2/45 p-3 text-base';
+  return <div className="settings-data contents">
     <section className="space-y-3 rounded-2xl border border-edge bg-surface p-5">
       <h2 className="font-medium">Storage & data protection</h2>
       <p className="text-sm">Local storage protection: <strong>{sync.protection}</strong></p>
@@ -38,5 +38,5 @@ export function DataSettings() {
     {message && <p role="status" className="break-words text-sm">{message}</p>}
     {purge && <Dialog title="Permanently delete this deck?" busy={busy} onClose={() => setPurge(null)}><p>Delete “{purge.title}”, its cards, and related study history permanently from this device and your account when synced? This cannot be undone. Other devices will receive the deletion when they reconnect.</p><div className="mt-5 flex flex-wrap justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={() => setPurge(null)}>Keep in Trash</Button><Button variant="danger" disabled={busy} onClick={() => void run(async () => { await permanentlyDeleteDeck(purge.id); setPurge(null); })}>Delete Permanently</Button></div></Dialog>}
     {backup && <Dialog title="Restore BrainBo Backup" busy={busy} onClose={() => setBackup(null)}><p>{backup.data.decks.filter(row => !row.purgedAt).length} decks · {backup.data.cards.filter(row => !row.purgedAt).length} cards · {backup.data.history.filter(row => !row.purgedAt).length} sessions</p><p className="mt-2 text-sm text-muted">Exported {new Date(backup.exportedAt).toLocaleString()}</p><label className="mt-4 block text-sm">Restore method<select className={field} value={mode} onChange={event => setMode(event.target.value as typeof mode)}><option value="merge">Merge with existing data</option><option value="replace">Replace local data</option></select></label><p className="mt-3 text-sm text-muted">{mode === 'replace' ? 'Replaces local records after saving a safety copy. Pending uploads are kept. This does not delete unrelated cloud data; account records may return at the next sync.' : 'Combines records by ID and field version. Newer fields win; competing text revisions remain in the backup metadata.'} {sync.user ? 'Restored data will merge into your signed-in account. Previously permanent deletions remain deleted.' : 'Restored data stays on this device until you sign in and approve adding it to an account.'}</p><div className="mt-5 flex justify-end gap-2"><Button variant="secondary" disabled={busy} onClick={() => setBackup(null)}>Cancel</Button><Button disabled={busy} onClick={() => void run(async () => { await restoreBackup(backup, mode); setBackup(null); setMessage('Backup restored.'); await sync.retry(); })}>Confirm restore</Button></div></Dialog>}
-  </>;
+  </div>;
 }

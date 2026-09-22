@@ -5,7 +5,6 @@ import {
   House,
   Library,
   CircleUserRound,
-  Settings,
 } from "lucide-react";
 
 export type NavItem = {
@@ -20,11 +19,11 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/study", label: "Study", icon: BookOpen },
   { href: "/progress", label: "Progress", icon: ChartNoAxesColumn },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
-export const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(item => item.href !== "/settings");
+export const MOBILE_NAV_ITEMS = NAV_ITEMS;
 
 export function isNavActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
+  if (href === "/profile" && pathname === "/settings") return true;
   return pathname === href || pathname.startsWith(`${href}/`);
 }

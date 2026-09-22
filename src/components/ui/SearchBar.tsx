@@ -32,7 +32,7 @@ export function SearchBar({
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
         autoComplete="off"
-        className="h-12 w-full rounded-2xl border border-edge bg-surface pr-4 pl-11 text-base text-ink shadow-sm outline-none placeholder:text-muted/80 focus-visible:ring-2 focus-visible:ring-accent/40"
+        className="h-12 w-full rounded-xl border border-edge bg-surface pr-4 pl-11 text-base text-ink shadow-[0_1px_2px_color-mix(in_srgb,var(--shadow-color)_8%,transparent)] outline-none placeholder:text-muted/75 focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20"
       />
     </label>
   );

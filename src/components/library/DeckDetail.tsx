@@ -7,7 +7,7 @@ import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { exportDeck } from "@/lib/deck-transfer";
 import { useRouter } from "next/navigation";
-import { Bookmark, Star, Trash2 } from "lucide-react";
+import { BookOpen, Bookmark, Brain, Grid2X2, Star, Trash2, ClipboardCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -92,17 +92,17 @@ export function DeckDetail({ deckId }: { deckId: string }) {
         }
       />
 
-      <div className="space-y-5 rounded-2xl border border-edge bg-surface p-5">
+      <div className="panel-surface space-y-5 p-5 sm:p-6">
         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
           <span><strong className="text-ink">{deck.cards.length}</strong> {deck.cards.length === 1 ? "term" : "terms"}</span>
           <span><strong className="text-ink">{starredCount}</strong> starred</span>
         </div>
         <ProgressBar value={mastery} label="Mastery" />
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Button size="lg" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id))}>Flashcards</Button>
-          <Button size="lg" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "learn"))}>Learn</Button>
-          <Button size="lg" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "test"))}>Test</Button>
-          <Button size="lg" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "match"))}>Match</Button>
+          <Button aria-label="Flashcards" className="mode-card mode-card-primary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id))}><span className="mode-card-icon"><BookOpen size={20} /></span><span><strong className="block">Flashcards</strong><span className="mt-1 hidden text-xs font-normal opacity-75 sm:block">Flip and recall</span></span></Button>
+          <Button aria-label="Learn" className="mode-card" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "learn"))}><span className="mode-card-icon"><Brain size={20} /></span><span><strong className="block">Learn</strong><span className="mt-1 hidden text-xs font-normal text-muted sm:block">Practice weak spots</span></span></Button>
+          <Button aria-label="Test" className="mode-card" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "test"))}><span className="mode-card-icon"><ClipboardCheck size={20} /></span><span><strong className="block">Test</strong><span className="mt-1 hidden text-xs font-normal text-muted sm:block">Check yourself</span></span></Button>
+          <Button aria-label="Match" className="mode-card" variant="secondary" disabled={!deck.cards.length} onClick={() => router.push(studyUrl(deck.id, "match"))}><span className="mode-card-icon"><Grid2X2 size={20} /></span><span><strong className="block">Match</strong><span className="mt-1 hidden text-xs font-normal text-muted sm:block">Pair concepts</span></span></Button>
         </div>
         {starredCount > 0 && <Button variant="ghost" onClick={() => router.push(studyUrl(deck.id, "flashcards", undefined, "starred"))}><Star className="h-4 w-4 fill-accent text-accent" />Study {starredCount} Starred</Button>}
       </div>
@@ -120,11 +120,11 @@ export function DeckDetail({ deckId }: { deckId: string }) {
             <SearchBar id="deck-search" value={query} onChange={setQuery} placeholder="Search terms and definitions" />
           </div>
           {!visibleCards.length && <div className="rounded-2xl border border-dashed border-edge p-6 text-center"><p className="text-muted">No cards match this search and filter.</p><Button className="mt-3" variant="secondary" onClick={() => { setQuery(""); setCardFilter("all"); }}>Show all terms</Button></div>}
-          <ul className="space-y-3">
+          <ul className="panel-surface divide-y divide-edge overflow-hidden">
           {visibleCards.map((card) => (
             <li
               key={card.id}
-              className="rounded-2xl border border-edge bg-surface p-4 sm:p-5"
+              className="p-4 sm:p-5"
             >
               <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] sm:items-start">
                 <div className="min-w-0">

@@ -25,7 +25,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <p className="px-6 pb-3 text-[10px] font-semibold tracking-[.18em] text-muted uppercase">Your workspace</p>
+      <p className="px-6 pb-3 text-[10px] font-semibold tracking-[.18em] text-muted uppercase">Workspace</p>
       <nav className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto px-3 py-2" aria-label="Main">
         {NAV_ITEMS.map((item) => {
           const active = isNavActive(pathname, item.href);
@@ -36,7 +36,7 @@ export function Sidebar() {
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "sidebar-link flex min-h-12 shrink-0 items-center gap-3 rounded-2xl px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+                "sidebar-link flex min-h-12 shrink-0 items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
                 active
                   ? "bg-accent/10 text-accent"
                   : "text-muted hover:bg-surface-2/70 hover:text-ink",

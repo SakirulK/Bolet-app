@@ -14,21 +14,21 @@ const THEMES: { value: ThemePreference; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
-export function SettingsView() {
+export function SettingsView({ embedded = false }: { embedded?: boolean }) {
   const { ready } = useStore();
   const { preference, setPreference } = useTheme();
 
   if (!ready) return <ScreenSkeleton />;
 
   return (
-    <div className="mx-auto max-w-xl space-y-8">
-      <PageHeader
+    <div className={embedded ? "space-y-6" : "mx-auto max-w-xl space-y-8"}>
+      {!embedded && <PageHeader
         eyebrow="Settings"
         title="Make it yours"
         description="Appearance, local storage, backups, and data protection."
-      />
+      />}
 
-      <section className="rounded-2xl border border-edge bg-surface p-5">
+      <section className="panel-surface p-5">
         <h2 className="font-medium text-ink">Appearance</h2>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {THEMES.map((item) => (
@@ -51,7 +51,7 @@ export function SettingsView() {
       </section>
 
       <DataSettings />
-      <section className="rounded-2xl border border-edge bg-surface p-5 text-sm leading-6 text-muted">
+      <section className="panel-surface p-5 text-sm leading-6 text-muted">
         <h2 className="font-medium text-ink">About BrainBo</h2>
         <a href="/install" className="study-link mt-3">Install BrainBo & offline help</a>
         <p className="mt-2">

@@ -143,13 +143,13 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
       <Button variant="secondary" size="icon" aria-label="Study settings" disabled={busy} onClick={openSettings}><Settings2 size={20} /></Button>
     </header>
 
-    {completed ? <section className="my-auto space-y-6 rounded-3xl border border-edge bg-surface p-6 text-center sm:p-10">
+    {completed ? <section className="panel-surface my-auto space-y-6 p-6 text-center sm:p-10">
       <Trophy className="mx-auto h-10 w-10 text-accent" aria-hidden />
       <div><p className="mb-2 text-sm text-accent">A little practice, a little more confidence.</p><h2 className="font-display text-3xl sm:text-4xl">Session Complete</h2></div>
       <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3">{[
         ["Cards studied", stats.studied], ["Accuracy", `${stats.accuracy}%`], ["Known", stats.known],
         ["Still learning", stats.stillLearning], ["Unseen", stats.unseen], ["Total study time", `${Math.floor(seconds / 60)}m ${seconds % 60}s`],
-      ].map(([label, value]) => <div key={label} className="rounded-2xl bg-canvas p-4"><dt className="text-xs text-muted">{label}</dt><dd className="mt-2 font-display text-2xl tabular-nums">{value}</dd></div>)}</dl>
+      ].map(([label, value]) => <div key={label} className="rounded-xl border border-edge/70 bg-surface-2/45 p-4"><dt className="text-xs text-muted">{label}</dt><dd className="mt-2 font-display text-2xl tabular-nums">{value}</dd></div>)}</dl>
       <p className="text-sm text-muted">Known and Still learning include cards you assessed. Unseen cards are never counted as Known.</p>
       <div className="flex flex-wrap justify-center gap-3"><Button size="lg" disabled={busy} onClick={() => void restart(session.options)}>Study Again</Button><Button size="lg" variant="secondary" disabled={busy || !session.missedIds.length} onClick={() => void restart({ ...session.options, filter: "all" }, true)}>Study {session.missedIds.length} Again</Button><Button size="lg" variant="ghost" disabled={busy} onClick={() => void finish(true)}>Back to Deck</Button></div>
     </section> : !card ? <section className="my-auto space-y-4 rounded-3xl border border-dashed border-edge bg-surface p-10 text-center">
@@ -180,7 +180,7 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
       <div className="space-y-5">
         <p className="text-sm text-muted">Set up your next round. Applying options starts a fresh session and saves this round’s statistics.</p>
         <label className="flex min-h-12 items-center justify-between gap-4 rounded-2xl border border-edge p-4">Shuffle cards (off = normal order)<input type="checkbox" checked={draft.shuffle} onChange={event => setDraft({ ...draft, shuffle: event.target.checked })} className="h-6 w-6 accent-accent" /></label>
-        <label className="block text-sm font-medium">Card direction<select className="mt-2 min-h-12 w-full rounded-2xl border border-edge bg-canvas px-4 text-base" value={draft.direction} onChange={event => setDraft({ ...draft, direction: event.target.value as StudyOptions["direction"] })}><option value="term">Term first</option><option value="definition">Definition first</option><option value="random">Random direction</option></select></label>
+        <label className="block text-sm font-medium">Card direction<select className="mt-2 min-h-12 w-full rounded-xl border border-edge bg-surface-2/45 px-4 text-base" value={draft.direction} onChange={event => setDraft({ ...draft, direction: event.target.value as StudyOptions["direction"] })}><option value="term">Term first</option><option value="definition">Definition first</option><option value="random">Random direction</option></select></label>
         <ContentSelect value={draft.filter} onChange={filter => setDraft({ ...draft, filter })} />
         <p className="text-sm text-muted">{filterCards(deck.cards, draft.filter).length} cards in this round. Missed cards return later; two consecutive correct recalls master a card.</p>
         {error && <p role="alert" className="text-sm text-danger">{error}</p>}

@@ -84,13 +84,13 @@ export function LibraryView() {
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-sm text-muted">Sort<select value={sort} onChange={event => setSort(event.target.value)} className="h-11 min-w-0 max-w-full rounded-2xl border border-edge bg-surface px-3 text-ink"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="alphabetical">Alphabetically</option></select></label>
+        <label className="flex items-center gap-2 text-sm text-muted">Sort<select value={sort} onChange={event => setSort(event.target.value)} className="h-11 min-w-0 max-w-full rounded-xl border border-edge bg-surface px-3 text-ink"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="alphabetical">Alphabetically</option></select></label>
         <label className="flex items-center gap-2 text-sm text-muted">
           Subject
           <select
             value={subject}
             onChange={(event) => setSubject(event.target.value)}
-            className="h-11 min-w-0 max-w-full rounded-2xl border border-edge bg-surface px-3 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+            className="h-11 min-w-0 max-w-full rounded-xl border border-edge bg-surface px-3 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             {subjects.map((item) => (
               <option key={item} value={item}>

@@ -11,7 +11,7 @@ export function ImportCardsDialog({ onClose, onImport }: { onClose: () => void; 
   const preview = parseCards(text, delimiter);
   return <Dialog title="Import cards" onClose={onClose}>
     <p className="mb-4 text-sm text-muted">Paste one term and definition per line. Tabs, commas, and semicolons are supported, including quoted CSV fields.</p>
-    <label className="block text-sm">Card data<textarea autoFocus rows={6} value={text} onChange={event => setText(event.target.value)} placeholder={"Apple\tAn edible fruit\nCPU\tCentral Processing Unit"} className="mt-2 w-full rounded-2xl border border-edge bg-canvas p-3 text-base" /></label>
+    <label className="block text-sm">Card data<textarea autoFocus rows={6} value={text} onChange={event => setText(event.target.value)} placeholder={"Apple\tAn edible fruit\nCPU\tCentral Processing Unit"} className="mt-2 w-full rounded-xl border border-edge bg-surface-2/45 p-3 text-base" /></label>
     <label className="my-4 flex flex-wrap items-center gap-3 text-sm">Separate with
       <select className="min-h-11 rounded-xl border border-edge bg-canvas px-3" value={delimiter} onChange={event => setDelimiter(event.target.value as Delimiter)}>
         <option value="auto">Detect automatically</option><option value={"\t"}>Tab</option><option value=",">Comma</option><option value=";">Semicolon</option>

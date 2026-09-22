@@ -115,7 +115,7 @@ export function HomeDashboard() {
             value={`${todayCount}`}
             hint="Cards reviewed"
           />
-          <article className="stat-panel col-span-2 rounded-2xl border border-edge bg-surface p-4 shadow-sm sm:p-5">
+          <article className="stat-panel col-span-2 rounded-xl border border-edge bg-surface p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-muted">Daily study goal</p>
@@ -133,7 +133,7 @@ export function HomeDashboard() {
         </div>
       </section>
 
-      <section className="review-panel space-y-4 rounded-3xl border border-edge p-5 sm:p-6">
+      <section className="review-panel space-y-4 rounded-2xl border border-edge p-5 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="font-display text-2xl">Due Today</h2><p className="mt-1 text-muted">{due.length} due cards · {due.length ? `about ${estimateReviewTime(due.length)} min` : "You’re up to date"}</p></div><a className="study-link" href="/review">{due.length ? "Start Review" : "View Review"}</a></div>
         <Metrics values={(["New", "Learning", "Familiar", "Mastered"] as const).map(level => [level, allCards.filter(card => card.masteryLevel === level).length])} />
       </section>

@@ -19,13 +19,13 @@ export function StatCard({
   return (
     <article
       className={cn(
-        "stat-panel rounded-2xl border border-edge bg-surface p-4 shadow-sm sm:p-5",
+        "stat-panel rounded-xl border border-edge bg-surface p-4 sm:p-5",
         className,
       )}
     >
       <div className="flex items-start justify-between gap-3">
         <p className="text-sm font-medium text-muted">{label}</p>
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-accent">
+        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-surface-2 text-accent">
           <Icon className="h-5 w-5" aria-hidden />
         </span>
       </div>

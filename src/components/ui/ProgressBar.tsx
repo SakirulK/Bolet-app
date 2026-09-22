@@ -35,7 +35,7 @@ export function ProgressBar({
         aria-label={label ?? "Progress"}
       >
         <div
-          className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out"
+          className="progress-fill h-full rounded-full bg-accent transition-[width] duration-300 ease-out"
           style={{ width: `${clamped}%` }}
         />
       </div>

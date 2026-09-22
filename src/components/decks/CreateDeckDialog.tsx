@@ -30,7 +30,7 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
   const draftKey = `editor:${deck?.id ?? "new"}`;
   const initialSignature = JSON.stringify({ title: deck?.title ?? "", description: deck?.description ?? "", subject: deck?.subject ?? "", cards: deck?.cards.map(card => ({ id: card.id, term: card.term, definition: card.definition, acceptedAnswers: card.acceptedAnswers, acceptedTermAnswers: card.acceptedTermAnswers })) ?? [] });
   const currentSignature = JSON.stringify({ title, description, subject, cards: cards.map(card => ({ id: card.id, term: card.term, definition: card.definition, acceptedAnswers: card.acceptedAnswers, acceptedTermAnswers: card.acceptedTermAnswers })) });
-  const field = "mt-1.5 w-full rounded-2xl border border-edge bg-canvas px-4 py-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-accent/40";
+  const field = "mt-1.5 w-full rounded-xl border border-edge bg-surface-2/45 px-4 py-3 text-base outline-none focus-visible:border-accent focus-visible:ring-2 focus-visible:ring-accent/20";
   function append(items: CardInput[]) { setCards(current => [...current, ...items.map(card => ({ ...card, key: crypto.randomUUID() }))]); }
   useEffect(() => {
     let active = true;
@@ -68,7 +68,7 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
         <label className="block text-sm font-medium">Description <span className="text-muted">(optional)</span><textarea rows={2} value={description} onChange={event => setDescription(event.target.value)} className={field} placeholder="What are you learning?" /></label>
         <div className="flex flex-wrap items-center justify-between gap-2"><h3 className="font-medium">Cards · {cards.length}</h3><Button variant="secondary" onClick={() => setImporting(true)}>Import cards</Button></div>
         {!cards.length && <p className="rounded-2xl border border-dashed border-edge p-6 text-center text-sm text-muted">Start with one idea. Add a card below or paste a whole list to import.</p>}
-        {cards.map((card, index) => <div key={card.key} className="rounded-2xl border border-edge bg-canvas/50 p-3">
+        {cards.map((card, index) => <div key={card.key} className="rounded-xl border border-edge bg-surface-2/35 p-3">
           <div className="flex items-center justify-between"><span className="text-sm text-muted">Card {index + 1}</span><div className="flex">
             <Button variant="ghost" size="icon" aria-label={`Move card ${index + 1} up`} disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp size={18} /></Button>
             <Button variant="ghost" size="icon" aria-label={`Move card ${index + 1} down`} disabled={index === cards.length - 1} onClick={() => move(index, 1)}><ArrowDown size={18} /></Button>

@@ -25,7 +25,7 @@ export function BottomNav() {
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "flex min-h-14 flex-col items-center justify-center gap-1 text-[11px] font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-inset",
-                  active ? "rounded-2xl bg-accent/10 text-accent" : "text-muted",
+                  active ? "rounded-xl bg-accent/10 text-accent" : "text-muted active:bg-surface-2",
                 )}
               >
                 <Icon className="h-5 w-5" aria-hidden />
