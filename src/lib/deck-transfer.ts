@@ -1,4 +1,5 @@
 import type { Deck } from "@/types";
+import { serializeBrainBoDeck } from "@/lib/deck-share";
 export type Delimiter = "auto" | "\t" | "," | ";";
 
 function rowsFor(text: string, delimiter: string) {
@@ -35,12 +36,12 @@ export function parseCards(text: string, choice: Delimiter) {
 export function exportDeck(deck: Deck, format: "json" | "csv") {
   const quote = (value: string) => '"' + value.replaceAll('"', '""') + '"';
   const content = format === "json"
-    ? JSON.stringify({ version: 1, exportedAt: new Date().toISOString(), deck }, null, 2)
+    ? serializeBrainBoDeck(deck)
     : "\uFEFFterm,definition\r\n" + deck.cards.map(card => [card.term, card.definition].map(quote).join(",")).join("\r\n");
   const url = URL.createObjectURL(new Blob([content], { type: format === "json" ? "application/json" : "text/csv;charset=utf-8" }));
   const link = document.createElement("a");
   link.href = url;
-  link.download = (deck.title.replace(/[^a-z0-9_-]/gi, "-") || "deck") + "." + format;
+  link.download = (deck.title.replace(/[^a-z0-9_-]/gi, "-") || "deck") + (format === "json" ? ".brainbo-deck.json" : ".csv");
   document.body.appendChild(link); link.click(); link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { FileUp, Plus } from "lucide-react";
 import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
+import { ImportDeckDialog } from "@/components/decks/ImportDeckDialog";
 import { DeckCard } from "@/components/decks/DeckCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +25,8 @@ export function LibraryView() {
   const [sort, setSort] = useState("newest");
   const [error, setError] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [imported, setImported] = useState<{ id: string; title: string } | null>(null);
 
   const subjects = useMemo(() => {
     const unique = Array.from(new Set(decks.map((deck) => deck.subject))).sort();
@@ -51,12 +54,14 @@ export function LibraryView() {
         title="Your decks"
         description="Search, favorite, and group by subject. Cards stay on this device."
         actions={
-          <Button size="lg" onClick={() => setCreateOpen(true)}>
+          <><Button size="lg" variant="secondary" onClick={() => setImportOpen(true)}><FileUp className="h-5 w-5" aria-hidden />Import deck</Button><Button size="lg" onClick={() => setCreateOpen(true)}>
             <Plus className="h-5 w-5" aria-hidden />
             Create deck
-          </Button>
+          </Button></>
         }
       />
+
+      {imported && <div role="status" className="panel-surface flex flex-wrap items-center gap-3 border-accent/25 p-4"><div className="mr-auto"><p className="font-medium">{imported.title} added to your library.</p><p className="mt-1 text-sm text-muted">It is a fresh copy with new IDs and new study progress.</p></div><Button variant="secondary" onClick={() => router.push(`/library/${imported.id}`)}>Open deck</Button><Button variant="ghost" onClick={() => setImported(null)}>Dismiss</Button></div>}
 
       <SearchBar
         id="library-search"
@@ -120,6 +125,7 @@ export function LibraryView() {
         onClose={() => setCreateOpen(false)}
         onCreated={(id) => router.push(`/library/${id}`)}
       />
+      {importOpen && <ImportDeckDialog onClose={() => setImportOpen(false)} onImported={(id, title) => { setImportOpen(false); setImported({ id, title }); }} />}
     </div>
   );
 }

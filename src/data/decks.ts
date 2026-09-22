@@ -22,6 +22,7 @@ export async function saveDeck(input: DeckInput, deckId?: string, db: RecallDB =
         repetitions: 0, dueAt: now, ...old,
         acceptedAnswers: (draft.original && JSON.stringify(draft.acceptedAnswers) === JSON.stringify(draft.original.acceptedAnswers) ? old?.acceptedAnswers : draft.acceptedAnswers ?? old?.acceptedAnswers)?.map(answer => answer.trim()).filter(Boolean),
         acceptedTermAnswers: (draft.original && JSON.stringify(draft.acceptedTermAnswers) === JSON.stringify(draft.original.acceptedTermAnswers) ? old?.acceptedTermAnswers : draft.acceptedTermAnswers ?? old?.acceptedTermAnswers)?.map(answer => answer.trim()).filter(Boolean),
+        notes: draft.notes === undefined ? old?.notes : draft.notes.trim() || undefined,
         term: old && draft.original?.term === draft.term ? old.term : draft.term.trim(),
         definition: old && draft.original?.definition === draft.definition ? old.definition : draft.definition.trim(),
         position: old && draft.original?.position === position ? old.position : position, updatedAt: now,

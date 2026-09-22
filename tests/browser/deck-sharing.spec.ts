@@ -1,0 +1,61 @@
+import { readFile } from 'node:fs/promises';
+import { test, expect } from '@playwright/test';
+import { records, seedStudy } from './helpers';
+import type { Card, DeckRecord } from '../../src/types';
+
+test('Deck Share downloads content only; Import Deck previews and adds a fresh offline copy', async ({ page, context }) => {
+  await seedStudy(page, 2);
+  await page.goto('/library/learn-deck');
+  await page.getByRole('button', { name: 'Share', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('not your study progress');
+  const downloadEvent = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Download BrainBo Deck', exact: true }).click();
+  const download = await downloadEvent;
+  expect(download.suggestedFilename()).toBe('Biology---Computing.brainbo-deck.json');
+  const path = await download.path(); expect(path).toBeTruthy();
+  const exported = JSON.parse(await readFile(path!, 'utf8'));
+  expect(exported).toMatchObject({ format: 'brainbo-deck', version: 1, deck: { title: 'Biology & Computing', subject: 'Science' } });
+  const raw = JSON.stringify(exported);
+  for (const personal of ['learn-deck', 'c0', 'mastery', 'starred', 'reviewCount', 'nextReviewAt']) expect(raw).not.toContain(personal);
+
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click();
+  await page.goto('/library');
+  await page.getByRole('button', { name: 'Import deck', exact: true }).click();
+  await page.getByLabel('Choose BrainBo deck file').setInputFiles(path!);
+  await expect(page.getByRole('dialog')).toContainText('Science · 2 cards');
+  await expect(page.getByRole('dialog')).toContainText('CPU');
+  await context.setOffline(true);
+  await page.getByRole('button', { name: 'Add to Library', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Biology & Computing added to your library.');
+  const decks = await records<DeckRecord>(page, 'decks');
+  expect(decks.filter(deck => !deck.deletedAt)).toHaveLength(2);
+  const imported = decks.find(deck => deck.id !== 'learn-deck')!;
+  expect(imported.title).toBe('Biology & Computing');
+  const cards = await records<Card>(page, 'cards');
+  const importedCards = cards.filter(card => card.deckId === imported.id);
+  expect(importedCards).toHaveLength(2);
+  expect(importedCards.every(card => !['c0', 'c1'].includes(card.id))).toBe(true);
+  expect(importedCards.every(card => !card.starred && card.mastery === 0 && card.masteryLevel === 'New' && card.reviewCount === 0)).toBe(true);
+  expect(importedCards.find(card => card.term === 'CPU')?.acceptedAnswers).toEqual(['Processor', 'Mitochondria']);
+  expect((await records<{ entityId?: string }>(page, 'syncQueue')).some(item => item.entityId === imported.id)).toBe(true);
+  await context.setOffline(false);
+  await page.getByRole('button', { name: 'Open deck', exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`/library/${imported.id}$`));
+  await expect(page.getByRole('heading', { name: 'Biology & Computing', exact: true })).toBeVisible();
+});
+
+test('Import Deck reports invalid, unsupported, malformed, and oversized files', async ({ page }) => {
+  await page.goto('/library'); await page.getByRole('button', { name: 'Import deck', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const input = dialog.getByLabel('Choose BrainBo deck file');
+  await input.setInputFiles({ name: 'invalid.json', mimeType: 'application/json', buffer: Buffer.from('{oops') });
+  await expect(dialog.getByRole('alert')).toHaveText('This file does not contain valid JSON.');
+  await input.setInputFiles({ name: 'wrong.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ format: 'wrong', version: 1 })) });
+  await expect(dialog.getByRole('alert')).toContainText('not a BrainBo deck export');
+  await input.setInputFiles({ name: 'future.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ format: 'brainbo-deck', version: 9, deck: {} })) });
+  await expect(dialog.getByRole('alert')).toContainText('not supported');
+  await input.setInputFiles({ name: 'malformed.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ format: 'brainbo-deck', version: 1, deck: { title: 'Bad', cards: [{ term: '', definition: 'Definition' }] } })) });
+  await expect(dialog.getByRole('alert')).toContainText('term is missing');
+  await input.setInputFiles({ name: 'huge.json', mimeType: 'application/json', buffer: Buffer.alloc(5_000_001, 32) });
+  await expect(dialog.getByRole('alert')).toContainText('smaller than 5 MB');
+});

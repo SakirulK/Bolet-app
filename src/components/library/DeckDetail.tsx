@@ -4,10 +4,11 @@ import { useState } from "react";
 import { StarButton } from "@/components/learning/StarButton";
 import { isCardStarred, studyUrl } from "@/lib/learning/content";
 import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
+import { ShareDeckDialog } from "@/components/decks/ShareDeckDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { exportDeck } from "@/lib/deck-transfer";
 import { useRouter } from "next/navigation";
-import { BookOpen, Bookmark, Brain, Grid2X2, Star, Trash2, ClipboardCheck } from "lucide-react";
+import { BookOpen, Bookmark, Brain, Grid2X2, Share2, Star, Trash2, ClipboardCheck } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -20,6 +21,7 @@ import { useStore } from "@/providers/StoreProvider";
 export function DeckDetail({ deckId }: { deckId: string }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
@@ -88,6 +90,7 @@ export function DeckDetail({ deckId }: { deckId: string }) {
               {deck.favorite ? "Saved deck" : "Save deck"}
             </Button>
             <Button variant="secondary" onClick={() => setEditing(true)}>Edit deck</Button>
+            <Button variant="secondary" onClick={() => setSharing(true)}><Share2 className="h-4 w-4" />Share</Button>
           </>
         }
       />
@@ -144,7 +147,7 @@ export function DeckDetail({ deckId }: { deckId: string }) {
 
       {error && <p role="alert" className="text-sm text-danger">{error}</p>}
       <div className="flex flex-wrap gap-2">
-      <Button variant="secondary" onClick={() => exportDeck(deck, "json")}>Export JSON</Button>
+      <Button variant="secondary" onClick={() => exportDeck(deck, "json")}>Export BrainBo Deck</Button>
       <Button variant="secondary" onClick={() => exportDeck(deck, "csv")}>Export CSV</Button>
       <Button variant="danger" onClick={() => setConfirming(true)}>
         <Trash2 className="h-4 w-4" aria-hidden />
@@ -152,6 +155,7 @@ export function DeckDetail({ deckId }: { deckId: string }) {
       </Button>
       </div>
       <CreateDeckDialog open={editing} deck={deck} onClose={() => setEditing(false)} />
+      {sharing && <ShareDeckDialog deck={deck} onClose={() => setSharing(false)} />}
       {confirming && <Dialog title="Delete deck?" busy={deleting} onClose={() => setConfirming(false)}>
         <p className="text-muted">“{deck.title}” and its {deck.cards.length} cards will move to Trash. You can restore them in Settings. Trash is never emptied automatically.</p>
         {error && <p role="alert" className="mt-3 text-danger">{error}</p>}

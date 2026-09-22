@@ -50,6 +50,11 @@ export function SettingsView({ embedded = false }: { embedded?: boolean }) {
         </div>
       </section>
 
+      <section className="panel-surface p-5 text-sm leading-6">
+        <h2 className="font-medium text-ink">Sharing and backups</h2>
+        <p className="mt-2 text-muted">Backup & Restore protects your entire BrainBo library and study data. To share one deck, open that deck and choose Share. Import Deck in the Library only adds one new deck and never replaces your account.</p>
+      </section>
+
       <DataSettings />
       <section className="panel-surface p-5 text-sm leading-6 text-muted">
         <h2 className="font-medium text-ink">About BrainBo</h2>

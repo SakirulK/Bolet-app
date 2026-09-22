@@ -72,7 +72,7 @@ export type CreateDeckInput = {
   subject: string;
 };
 
-export type CardInput = { original?: { term: string; definition: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[]; position?: number }; id?: string; term: string; definition: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[] };
+export type CardInput = { original?: { term: string; definition: string; notes?: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[]; position?: number }; id?: string; term: string; definition: string; notes?: string; acceptedAnswers?: string[]; acceptedTermAnswers?: string[] };
 export type DeckInput = CreateDeckInput & { cards: CardInput[]; original?: CreateDeckInput; removedCardIds?: string[] };
 
 export type MasteryLevel = "New" | "Learning" | "Familiar" | "Mastered";
