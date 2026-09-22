@@ -19,20 +19,21 @@ import type { Deck, StudyHistory } from "@/types";
 type LearnDraft = { round: Round; answer: string; feedback: { correct: boolean; dontKnow: boolean; original: boolean } | null; direction: Direction; choice: boolean; written: boolean; smart: boolean; typos: boolean };
 type Round = { state: LearnState; question: Question; history: StudyHistory };
 export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initialFilter?: ContentFilter }) {
-  const { history } = useStore();
-  const [filter, setFilter] = useState(initialFilter), [shuffle, setShuffle] = useState(true);
-  const [direction, setDirection] = useState<Direction>("term");
-  const [choice, setChoice] = useState(true), [written, setWritten] = useState(true), [smart, setSmart] = useState(false);
-  const [typos, setTypos] = useState(false);
-  const [roundCount, setRoundCount] = useState("auto");
+  const { history, prefs, setStudyPreferences } = useStore();
+  const saved = prefs.study?.learn;
+  const [filter, setFilter] = useState(initialFilter), [shuffle, setShuffle] = useState(saved?.shuffle ?? true);
+  const [direction, setDirection] = useState<Direction>(saved?.direction ?? "term");
+  const [choice, setChoice] = useState(saved?.choice ?? true), [written, setWritten] = useState(saved?.written ?? true), [smart, setSmart] = useState(saved?.smart ?? false);
+  const [typos, setTypos] = useState(saved?.typos ?? false);
+  const [roundCount, setRoundCount] = useState(saved?.rounds ?? "auto");
   const [round, setRound] = useState<Round | null>(null);
   const [answer, setAnswer] = useState(""), [feedback, setFeedback] = useState<{ correct: boolean; dontKnow: boolean; original: boolean } | null>(null);
   const [retype, setRetype] = useState<string | null>(null), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const [recovery, setRecovery] = useState<LearnDraft | null>(null);
   useEffect(() => { void readDraft<LearnDraft>(`learn:${deck.id}`).then(draft => {
     if (draft && !draft.round.state.done && draft.round.state.ids.every(id => deck.cards.some(card => card.id === id))) setRecovery(draft);
-  }); }, [deck.id, deck.cards]);
-  const lock = useRef(false), started = useRef(0);
+  }).catch(() => setError("The saved Learn session could not be opened. You can start a new session safely.")); }, [deck.id, deck.cards]);
+  const lock = useRef(false), started = useRef(0), promptRef = useRef<HTMLHeadingElement>(null);
   const eligible = filterCards(deck.cards, filter);
   const recommended = recommendRounds(eligible, history.filter(item => item.deckId === deck.id));
   function questionFor(state: LearnState, index: number) {
@@ -43,10 +44,19 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
   function start(ids?: string[]) {
     const cards = ids ? deck.cards.filter(card => ids.includes(card.id)) : eligible;
     if (!cards.length || (!choice && !written)) return;
+    void setStudyPreferences("learn", { shuffle, direction, choice, written, smart, typos, rounds: roundCount });
     const state = createLearnState((shuffle ? shuffled(cards) : cards).map(card => card.id), roundCount === "auto" ? recommendRounds(cards, history.filter(item => item.deckId === deck.id)) : Number(roundCount));
     setRound({ state, question: questionFor(state, 0), history: newHistory(deck.id, deck.title, "learn") });
     setAnswer(""); setFeedback(null); setRetype(null); setError(""); started.current = Date.now();
   }
+  useEffect(() => {
+    if (!round || round.state.done) return;
+    promptRef.current?.focus();
+    const timer = window.setTimeout(() => {
+      if (!feedback) void saveDraft(`learn:${deck.id}`, { round, answer, feedback, direction, choice, written, smart, typos }).catch(() => setError("Could not save your recovery draft. Keep this page open and try again."));
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [answer, choice, deck.id, direction, feedback, round, smart, typos, written]);
   async function grade(dontKnow = false) {
     if (!round || feedback || lock.current) return;
     const correct = !dontKnow && (round.question.type === "written" ? gradeWrittenAnswer(answer, round.question.expected, { smartGrading: smart, allowMinorSpellingMistakes: typos, acceptedAnswers: round.question.acceptedAnswers }) : answer === round.question.expected);
@@ -76,7 +86,7 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
     {recovery && <div className="space-y-2 rounded-2xl border border-edge p-4"><p className="text-sm text-muted">An unfinished Learn session is saved on this device.</p><Button variant="secondary" onClick={() => { setRound(recovery.round); setAnswer(recovery.answer); setFeedback(recovery.feedback); setDirection(recovery.direction); setChoice(recovery.choice); setWritten(recovery.written); setSmart(recovery.smart); setTypos(recovery.typos); started.current = Date.now(); }}>Resume saved Learn session</Button></div>}
     <Section title="Content"><ContentSelect value={filter} onChange={setFilter} /><Toggle label="Shuffle" value={shuffle} onChange={setShuffle} /><p className="text-sm text-muted">{eligible.length} eligible cards</p></Section>
     <Section title="Answer direction"><DirectionSelect value={direction} onChange={setDirection} /></Section>
-    <Section title="Question types"><Toggle label="Multiple Choice" value={choice} onChange={setChoice} /><Toggle label="Written Answer" value={written} onChange={setWritten} />{!choice && !written && <p role="alert" className="text-danger">Choose at least one question type.</p>}<Toggle label="Smart Grading" value={smart} onChange={setSmart} /><p className="text-sm text-muted">Accept explicitly saved equivalent answers. Smart Grading is separate from spelling tolerance and works offline.</p><Toggle label="Spelling matters" value={!typos} onChange={value => setTypos(!value)} /></Section>
+    <Section title="Question types"><Toggle label="Multiple Choice" value={choice} onChange={setChoice} /><Toggle label="Written Answer" value={written} onChange={setWritten} />{!choice && !written && <p role="alert" className="text-danger">Choose at least one question type.</p>}{written && <details open className="rounded-2xl border border-edge p-4"><summary className="min-h-11 cursor-pointer font-medium">Written answer grading</summary><div className="mt-3 space-y-3"><Toggle label="Smart Grading" value={smart} onChange={setSmart} /><p className="text-sm text-muted">Accept author-approved equivalent answers. Smart Grading never guesses meaning and works offline.</p><Toggle label="Spelling matters" value={!typos} onChange={value => setTypos(!value)} /></div></details>}</Section>
     <Section title="Number of rounds"><label className="block text-sm">Rounds<select value={roundCount} onChange={e => setRoundCount(e.target.value)} className={fieldClass}><option value="auto">Automatic / Recommended</option>{Array.from({ length: 10 }, (_, i) => <option key={i + 1}>{i + 1}</option>)}</select></label><p className="text-sm text-muted">Recommended: {recommended} rounds. Based on mastery and recent performance.</p><p className="text-sm text-muted">Confident cards receive fewer questions, with a short maintenance check when needed. Misses get a later retry each round.</p></Section>
     {!eligible.length && <p role="status" className="rounded-2xl border border-dashed border-edge p-5">{emptyContent(filter)}</p>}
     <div className="flex flex-wrap gap-3"><Button size="lg" disabled={!eligible.length || (!choice && !written)} onClick={() => start()}>Start Learning</Button><LocalLink className="study-link" href={`/library/${deck.id}`}>Back to Deck</LocalLink></div>
@@ -87,12 +97,14 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
     <Section title="Difficult cards">{round.history.difficultIds.length ? <ul className="divide-y divide-edge">{deck.cards.filter(card => round.history.difficultIds.includes(card.id)).map(card => <li key={card.id} className="flex items-center justify-between py-3"><span>{card.term}</span><StarButton card={card} /></li>)}</ul> : <p className="text-muted">No missed answers this round.</p>}</Section>
     <div className="flex flex-wrap gap-3"><Button onClick={() => start(round.state.ids)}>Continue Learning</Button><Button variant="secondary" disabled={!round.history.difficultIds.length} onClick={() => start(round.history.difficultIds)}>Review Difficult Cards</Button><LocalLink className="study-link" href={studyUrl(deck.id, "learn", undefined, "starred")}>Study Starred</LocalLink><LocalLink className="study-link" href={`/library/${deck.id}`}>Back to Deck</LocalLink></div></div>;
   if (!card) return <p role="alert">This card was deleted. <LocalLink href={`/library/${deck.id}`} className="underline">Back to Deck</LocalLink></p>;
-  return <div className="mx-auto max-w-3xl space-y-6"><header className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-accent">{deck.title} · Learn</p><h1 className="font-display text-2xl">Round {round.state.round} of {round.state.rounds}</h1></div><LocalLink className="study-link" href={`/library/${deck.id}`}>Back to Deck</LocalLink></header>
-    <ProgressBar label={`${round.state.queue.length} remaining in this round · ${attempts} answered`} value={(round.state.round - 1) / round.state.rounds * 100} />
-    <div className="flex items-start justify-between gap-4"><h2 className="whitespace-pre-wrap break-words font-display text-3xl">{round.question.prompt}</h2><StarButton card={card} /></div>
+  const reviewedThisRound = Object.keys(round.state.visits).length;
+  const learnProgress = (round.state.completedRounds + Math.min(1, reviewedThisRound / Math.max(1, round.state.ids.length))) / round.state.rounds * 100;
+  return <div className="mx-auto max-w-3xl space-y-6"><header className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-accent">{deck.title} · Learn</p><h1 className="font-display text-2xl">Round {round.state.round} of {round.state.rounds}</h1></div><LocalLink className="study-link" href={`/library/${deck.id}`}>Save & Exit</LocalLink></header>
+    <ProgressBar label={`${reviewedThisRound} of ${round.state.ids.length} cards reviewed this round · ${attempts} answered`} value={learnProgress} />
+    <div className="flex items-start justify-between gap-4"><h2 ref={promptRef} tabIndex={-1} className="whitespace-pre-wrap break-words font-display text-3xl outline-none">{round.question.prompt}</h2><StarButton card={card} /></div>
     <form className="space-y-5" onSubmit={e => { e.preventDefault(); if (feedback) void next(); else void grade(); }}>
       <QuestionAnswer question={round.question} value={answer} onChange={setAnswer} disabled={!!feedback || busy} />
-      {!feedback ? <div className="flex gap-3"><Button type="submit" disabled={busy || !answer.trim()}>Check Answer</Button><Button variant="secondary" disabled={busy} onClick={() => void grade(true)}>Don’t Know</Button></div> : <div className="space-y-4 rounded-2xl bg-surface-2 p-5" aria-live="polite"><p className="font-medium">{feedback.dontKnow ? "Let’s practice this again." : feedback.correct ? "Correct" : "Not quite. This card will return later."}</p><p className="whitespace-pre-wrap break-words">Correct answer: {round.question.expected}</p>
+      {!feedback ? <div className="flex gap-3"><Button type="submit" disabled={busy || !answer.trim()}>Check Answer</Button><Button variant="secondary" disabled={busy} onClick={() => void grade(true)}>Don’t Know</Button></div> : <div className="space-y-4 rounded-2xl bg-surface-2 p-5" aria-live="polite"><p className="font-medium">{feedback.dontKnow ? "Let’s practice this again." : feedback.correct ? "Correct" : "Not quite. This card will return later."}</p>{round.question.type === "written" ? <div className="grid gap-3 sm:grid-cols-2"><div><p className="text-xs font-medium uppercase tracking-wide text-muted">Your answer</p><p className="mt-1 whitespace-pre-wrap break-words">{answer || "Don’t Know"}</p></div><div><p className="text-xs font-medium uppercase tracking-wide text-muted">Expected</p><p className="mt-1 whitespace-pre-wrap break-words">Correct answer: {round.question.expected}</p></div></div> : <p className="whitespace-pre-wrap break-words">Correct answer: {round.question.expected}</p>}
         {round.question.type === "written" && !feedback.correct && !feedback.dontKnow && <Button variant="secondary" disabled={busy} onClick={() => { if (lock.current) return; lock.current = true; setBusy(true); const result = { ...feedback, correct: true }; void saveDraft(`learn:${deck.id}`, { round, answer, feedback: result, direction, choice, written, smart, typos }).then(() => { setFeedback(result); setRetype(null); setError(""); }).catch(() => setError("Could not save your override. Try again.")).finally(() => { lock.current = false; setBusy(false); }); }}>I was correct</Button>}
         {round.question.type === "written" && !feedback.correct && <>{retype === null ? <Button variant="secondary" onClick={() => setRetype("")}>Retype Answer</Button> : <div><label className="block text-sm">Retype the correct answer<input className={fieldClass} value={retype} onChange={e => setRetype(e.target.value)} /></label><Button variant="ghost" onClick={() => setRetype(null)}>Skip retyping</Button></div>}<p className="text-sm text-muted">Retyping reinforces the answer; it does not erase this attempt.</p></>}
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Continue"}</Button></div>}

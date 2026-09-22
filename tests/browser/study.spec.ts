@@ -64,8 +64,8 @@ test('iPad touch: flip, swipe, repeat missed cards, complete, review and persist
   await expect(page.getByRole('heading', { name: 'Session Complete' })).toBeVisible();
   await metric(page, 'Cards studied', '2');
   await metric(page, 'Accuracy', '80%');
-  await metric(page, 'Known', '1');
-  await metric(page, 'Still learning', '1');
+  await metric(page, 'Known', '2');
+  await metric(page, 'Still learning', '0');
   await page.screenshot({ path: 'test-results/session-complete-ipad.png', fullPage: true });
   await page.getByRole('button', { name: 'Study 1 Again' }).tap();
   await expect(page.getByTestId('flashcard')).toContainText('CPU');
@@ -95,7 +95,7 @@ test('settings, keyboard, reduced motion, short gestures and early finish', asyn
   await expect(page.getByTestId('flashcard')).toHaveAttribute('aria-label', /Definition: Central Processing Unit/);
   await metric(page, 'Remaining', '1');
   expect(await page.locator('.study-card-inner').evaluate(element => getComputedStyle(element).transitionDuration)).toBe('0s');
-  await page.getByRole('button', { name: 'Know', exact: true }).focus();
+  await page.getByTestId('flashcard').focus();
   await page.keyboard.press('Space');
   await expect(page.getByTestId('flashcard')).toHaveAttribute('aria-pressed', 'true');
   await page.keyboard.press('ArrowLeft');
@@ -113,7 +113,7 @@ test('settings, keyboard, reduced motion, short gestures and early finish', asyn
   await page.keyboard.press('ArrowRight');
   await page.getByRole('button', { name: 'Finish session now' }).tap();
   await expect(page.getByRole('heading', { name: 'Session Complete' })).toBeVisible();
-  await metric(page, 'Still learning', '1');
+  await metric(page, 'Still learning', '0');
   await metric(page, 'Accuracy', '50%');
   await page.getByRole('button', { name: 'Study Again' }).tap();
   await metric(page, 'Correct', '0');

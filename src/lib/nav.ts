@@ -22,6 +22,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/profile", label: "Profile", icon: CircleUserRound },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
+export const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(item => item.href !== "/settings");
 
 export function isNavActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";

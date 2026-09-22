@@ -60,6 +60,10 @@ export type Prefs = {
   profileConfigured?: boolean;
   dailyGoal: number;
   displayName: string;
+  study?: {
+    learn?: { shuffle: boolean; direction: "term" | "definition" | "mixed"; choice: boolean; written: boolean; smart: boolean; typos: boolean; rounds: string };
+    test?: { count: string; custom: number; types: ("choice" | "written" | "boolean")[]; direction: "term" | "definition" | "mixed"; strict: boolean; auto: boolean; shuffle: boolean; smart: boolean };
+  };
 };
 
 export type CreateDeckInput = {

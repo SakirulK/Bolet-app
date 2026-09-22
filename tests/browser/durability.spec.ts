@@ -18,7 +18,7 @@ test('deck editing, explicit card removal, Trash and restore survive reload with
   const removed=await records<Card>(page,'cards');expect(removed).toHaveLength(3);expect(removed.find(c=>c.id==='c2')?.deletedAt).toBeTruthy();
   await page.getByRole('button',{name:'Delete deck',exact:true}).click();await expect(page.getByRole('dialog')).toContainText('Trash is never emptied automatically');await page.getByRole('button',{name:'Move to Trash',exact:true}).click();
   await expect(page).toHaveURL(/library$/);await page.goto('/settings');await expect(page.getByText('Durable Biology',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Restore',exact:true}).click();await page.goto('/library/learn-deck');await expect(page.getByRole('heading',{name:'Durable Biology'})).toBeVisible();
+  await page.getByRole('button',{name:'Restore',exact:true}).click();await expect(page.getByText('Trash is empty.',{exact:true})).toBeVisible();await page.goto('/library/learn-deck');await expect(page.getByRole('heading',{name:'Durable Biology'})).toBeVisible();
   expect((await records<Card>(page,'cards')).filter(c=>!c.deletedAt)).toHaveLength(2);
   await page.getByRole('button',{name:'Delete deck',exact:true}).click();await page.getByRole('button',{name:'Move to Trash',exact:true}).click();await expect(page).toHaveURL(/library$/);await page.goto('/settings');await page.getByRole('button',{name:'Delete Permanently',exact:true}).click();
   await page.getByRole('dialog').getByRole('button',{name:'Keep in Trash'}).click();expect((await records<DeckRecord>(page,'decks'))[0].title).toBe('Durable Biology');

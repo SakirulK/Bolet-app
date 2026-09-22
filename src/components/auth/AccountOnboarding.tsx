@@ -15,7 +15,7 @@ export function RecoveryProblem({ onContinue }: { onContinue: () => void }) {
   const [busy, setBusy] = useState(false);
   return <AuthFrame title="We couldn’t reach your library" description="Your local data is safe. Retry when your connection is available, or continue with what is stored on this device.">
     {sync.error && <p role="alert" className="rounded-2xl border border-edge bg-surface p-4 text-sm text-danger">{sync.error}</p>}
-    <div className="grid gap-3"><Button disabled={busy} onClick={() => { setBusy(true); void sync.retry().finally(() => setBusy(false)); }}>{busy ? "Retrying…" : "Retry"}</Button><Button variant="secondary" onClick={onContinue}>Continue on this device</Button></div>
+    <div className="grid gap-3"><Button disabled={busy} onClick={() => { setBusy(true); void sync.retry().catch(() => undefined).finally(() => setBusy(false)); }}>{busy ? "Retrying…" : "Retry"}</Button><Button variant="secondary" onClick={onContinue}>Continue on this device</Button></div>
   </AuthFrame>;
 }
 

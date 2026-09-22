@@ -18,8 +18,8 @@ test('misses return later; only two consecutive recalls master a card', () => {
   assert.ok(session.endedAt);
   assert.equal(sessionStats(session).mastered, 5);
   assert.equal(sessionStats(session).remaining, 0);
-  assert.equal(sessionStats(session).known, 4);
-  assert.equal(sessionStats(session).stillLearning, 1);
+  assert.equal(sessionStats(session).known, 5);
+  assert.equal(sessionStats(session).stillLearning, 0);
   assert.equal(session.correct, 10);
   assert.equal(session.incorrect, 1);
   assert.equal(sessionStats(session).accuracy, 91);
@@ -33,6 +33,16 @@ test('misses return later; only two consecutive recalls master a card', () => {
   assert.equal(sessionStats(single).mastered, 0);
   single = answerSession(single, true);
   assert.equal(sessionStats(single).mastered, 1);
+});
+
+test('unseen cards are never reported as known', () => {
+  const cards = ['a', 'b', 'c'].map(id => ({ id, starred: false }));
+  const started = startSession('deck', cards, defaultStudyOptions, 100);
+  const session = answerSession(started, true, 200);
+  assert.deepEqual(sessionStats(session), {
+    attempts: 1, mastered: 0, remaining: 3, known: 1, stillLearning: 0,
+    unseen: 2, missed: 0, studied: 1, accuracy: 100, durationMs: 100,
+  });
 });
 
 test('options filter stars, shuffle without loss, and leave source cards unchanged', () => {

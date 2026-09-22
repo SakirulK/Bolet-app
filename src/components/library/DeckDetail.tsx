@@ -7,12 +7,14 @@ import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
 import { Dialog } from "@/components/ui/Dialog";
 import { exportDeck } from "@/lib/deck-transfer";
 import { useRouter } from "next/navigation";
-import { Star, Trash2 } from "lucide-react";
+import { Bookmark, Star, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ScreenSkeleton } from "@/components/ui/ScreenSkeleton";
+import { SearchBar } from "@/components/ui/SearchBar";
 import { cn } from "@/lib/cn";
+import { needsAttention } from "@/lib/learning/analytics";
 import { useStore } from "@/providers/StoreProvider";
 
 export function DeckDetail({ deckId }: { deckId: string }) {
@@ -21,6 +23,8 @@ export function DeckDetail({ deckId }: { deckId: string }) {
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [cardFilter, setCardFilter] = useState<"all" | "starred" | "practice">("all");
   const {
     ready,
     decks,
@@ -46,6 +50,13 @@ export function DeckDetail({ deckId }: { deckId: string }) {
 
   const mastery = masteryForDeck(deck.id);
   const starredCount = deck.cards.filter(isCardStarred).length;
+  const practiceCount = deck.cards.filter(card => needsAttention(card)).length;
+  const visibleCards = deck.cards.filter(card => {
+    if (cardFilter === "starred" && !isCardStarred(card)) return false;
+    if (cardFilter === "practice" && !needsAttention(card)) return false;
+    const normalized = query.trim().toLocaleLowerCase();
+    return !normalized || `${card.term} ${card.definition} ${card.notes ?? ""}`.toLocaleLowerCase().includes(normalized);
+  });
   const currentDeckId = deck.id;
   async function handleDelete() {
     if (deleting) return;
@@ -71,10 +82,10 @@ export function DeckDetail({ deckId }: { deckId: string }) {
               onClick={() => report(toggleFavorite(deck.id))}
               aria-pressed={deck.favorite}
             >
-              <Star
+              <Bookmark
                 className={cn("h-4 w-4", deck.favorite && "fill-accent text-accent")}
               />
-              {deck.favorite ? "Favorited" : "Favorite"}
+              {deck.favorite ? "Saved deck" : "Save deck"}
             </Button>
             <Button variant="secondary" onClick={() => setEditing(true)}>Edit deck</Button>
           </>
@@ -102,26 +113,29 @@ export function DeckDetail({ deckId }: { deckId: string }) {
         </p>
       ) : (
         <section className="space-y-3">
-          <h2 className="font-display text-2xl">Terms in this set</h2>
+          <div className="sticky top-0 z-10 space-y-3 bg-canvas/95 py-2 backdrop-blur-sm">
+            <div className="flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-2xl">Terms in this set</h2><p className="mt-1 text-sm text-muted">{visibleCards.length} of {deck.cards.length} shown</p></div>
+              <div className="flex flex-wrap gap-2" aria-label="Term filters">{([['all', `All ${deck.cards.length}`], ['starred', `Starred ${starredCount}`], ['practice', `Needs practice ${practiceCount}`]] as const).map(([value, label]) => <button key={value} type="button" aria-pressed={cardFilter === value} onClick={() => setCardFilter(value)} className={cn("min-h-11 rounded-full border px-4 text-sm font-medium", cardFilter === value ? "border-accent bg-accent text-accent-fg" : "border-edge bg-surface text-muted")}>{label}</button>)}</div>
+            </div>
+            <SearchBar id="deck-search" value={query} onChange={setQuery} placeholder="Search terms and definitions" />
+          </div>
+          {!visibleCards.length && <div className="rounded-2xl border border-dashed border-edge p-6 text-center"><p className="text-muted">No cards match this search and filter.</p><Button className="mt-3" variant="secondary" onClick={() => { setQuery(""); setCardFilter("all"); }}>Show all terms</Button></div>}
           <ul className="space-y-3">
-          {deck.cards.map((card) => (
+          {visibleCards.map((card) => (
             <li
               key={card.id}
               className="rounded-2xl border border-edge bg-surface p-4 sm:p-5"
             >
-              <div className="flex items-start justify-between gap-3">
-                <div>
+              <div className="grid gap-4 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)_auto] sm:items-start">
+                <div className="min-w-0">
                   <p className="text-xs font-medium tracking-wide text-muted uppercase">
                     Term
                   </p>
                   <p className="mt-1 whitespace-pre-wrap break-words font-medium text-ink">{card.term}</p>
                 </div>
+                <div className="min-w-0"><p className="text-xs font-medium tracking-wide text-muted uppercase">Definition</p><p className="mt-1 whitespace-pre-wrap break-words text-base leading-6 text-muted">{card.definition}</p>{card.notes ? <p className="mt-2 text-sm text-ink/80">{card.notes}</p> : null}</div>
                 <StarButton card={card} />
               </div>
-              <p className="mt-3 whitespace-pre-wrap break-words text-base leading-6 text-muted">{card.definition}</p>
-              {card.notes ? (
-                <p className="mt-2 text-sm text-ink/80">{card.notes}</p>
-              ) : null}
             </li>
           ))}
           </ul>

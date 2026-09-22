@@ -7,3 +7,6 @@ export async function readDraft<T>(key: string): Promise<T | null> {
   const row = await getDb().syncMeta.get(`draft:${key}`);
   return row ? JSON.parse(row.value) as T : null;
 }
+export async function deleteDraft(key: string) {
+  await getDb().syncMeta.delete(`draft:${key}`);
+}

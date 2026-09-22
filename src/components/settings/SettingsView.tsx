@@ -35,6 +35,7 @@ export function SettingsView() {
             <button
               key={item.value}
               type="button"
+              aria-pressed={preference === item.value}
               onClick={() => setPreference(item.value)}
               className={cn(
                 "min-h-12 rounded-2xl border text-sm font-medium",

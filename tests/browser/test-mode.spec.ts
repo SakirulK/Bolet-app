@@ -52,7 +52,7 @@ test('Test manual grading, unanswered warning, navigation, result stars and inco
   await expect(page.getByRole('heading', { name: 'Review your test' })).toBeVisible(); await expect(page.getByRole('button', { name: 'Save Results' })).toBeDisabled();
   const rows = page.locator('ol > li'); await rows.nth(0).getByRole('button', { name: 'Correct', exact: true }).click();
   for (const i of [1, 2]) await rows.nth(i).getByRole('button', { name: 'Incorrect', exact: true }).click();
-  await page.getByRole('button', { name: 'Save Results' }).click(); await metric(page, 'Correct', '1'); await metric(page, 'Incorrect', '2');
+  await page.getByRole('button', { name: 'Save Results' }).click(); await metric(page, 'Correct', '1'); await metric(page, 'Incorrect', '0'); await metric(page, 'Unanswered', '2');
   const first = page.locator('ol > li').first(); await first.getByRole('button', { name: 'Unstar card' }).click(); await first.getByRole('button', { name: 'Star card' }).click();
   const learnHref = await page.getByRole('link', { name: 'Learn Incorrect', exact: true }).getAttribute('href'); const flashHref = await page.getByRole('link', { name: 'Flashcards for Incorrect', exact: true }).getAttribute('href');
   expect(learnHref).toContain('ids=c1%2Cc2'); expect(flashHref).toContain('mode=flashcards');

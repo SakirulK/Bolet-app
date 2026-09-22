@@ -66,13 +66,12 @@ export function LibraryView() {
       />
 
       <div className="flex flex-col flex-wrap gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2" role="tablist" aria-label="Deck filters">
+        <div className="flex flex-wrap gap-2" aria-label="Deck filters">
           {FILTERS.map((item) => (
             <button
               key={item}
               type="button"
-              role="tab"
-              aria-selected={filter === item}
+              aria-pressed={filter === item}
               onClick={() => setFilter(item)}
               className={cn(
                 "min-h-11 rounded-full border px-4 text-sm font-medium transition-colors",

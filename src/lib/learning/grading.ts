@@ -41,28 +41,15 @@ export type GradingOptions = {
   /** Explicit, author-provided aliases for the expected side, never inferred. */
   acceptedAnswers?: readonly string[];
 };
-const conceptWords: Record<string, string> = {
-  converts: "convert", converted: "convert", converting: "convert", uses: "convert", use: "convert", using: "convert", creates: "convert", create: "convert", produces: "convert", produce: "convert",
-  sunlight: "light", solar: "light",
-};
-const ignoredWords = new Set(["a", "an", "the", "to", "of", "in", "on", "for", "and", "is", "are", "that", "which"]);
-function concepts(value: string) {
-  return normalizeAnswer(value).split(/\s+/).filter(word => word && !ignoredWords.has(word)).map(word => conceptWords[word] ?? word.replace(/(?:ing|ed|es|s)$/u, ""));
-}
-/** Conservative, local semantic comparison for sentence-length answers. */
+/** Semantic inference is deliberately disabled. Unordered word overlap can accept
+ * reversed or contradictory relationships, which is unsafe for study grading. */
 export function gradeSemanticAnswer(answer: string, expected: string): boolean {
-  const a = concepts(answer), b = concepts(expected);
-  if (a.length < 4 || b.length < 4) return false;
-  const markers = (value: string) => value.match(/\d+|[+−=<>/-]|\b(?:not|no|never)\b/g) ?? [];
-  if (markers(normalizeAnswer(answer)).join() !== markers(normalizeAnswer(expected)).join()) return false;
-  const left = new Set(a), right = new Set(b);
-  const shared = [...left].filter(word => right.has(word)).length;
-  return shared / Math.max(left.size, right.size) >= 0.8;
+  void answer; void expected;
+  return false;
 }
-/** Smart grading combines saved equivalent answers with a conservative local
- * concept comparison. Typo tolerance remains independently controlled. */
+/** Smart grading uses author-approved aliases. Typo tolerance remains separate. */
 export function gradeSmartAnswer(answer: string, expected: string, acceptedAnswers: readonly string[] = [], allowMinorSpellingMistakes = false): boolean {
-  return [expected, ...acceptedAnswers].some(candidate => gradeSpelling(answer, candidate, allowMinorSpellingMistakes)) || gradeSemanticAnswer(answer, expected);
+  return [expected, ...acceptedAnswers].some(candidate => gradeSpelling(answer, candidate, allowMinorSpellingMistakes));
 }
 export function gradeWrittenAnswer(answer: string, expected: string, options: GradingOptions = {}): boolean {
   return options.smartGrading

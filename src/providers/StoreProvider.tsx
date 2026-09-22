@@ -16,6 +16,7 @@ import { saveDeck, removeDeck } from "@/data/decks";
 import { liveQuery } from "dexie";
 import { getPrefs, updatePrefs } from "@/data/preferences";
 import type { Card, DeckInput, DailyActivity, Deck, DeckRecord, Prefs, StudyHistory, StudyEvent } from "@/types";
+import type { Session } from "@/lib/study-session";
 
 type StoreValue = {
   ready: boolean;
@@ -24,6 +25,7 @@ type StoreValue = {
   activity: DailyActivity[];
   history: StudyHistory[];
   events: StudyEvent[];
+  sessions: Session[];
   todayCount: number;
   streak: number;
   cardsForDeck: (deckId: string) => Card[];
@@ -35,6 +37,7 @@ type StoreValue = {
   deleteDeck: (deckId: string) => Promise<void>;
   setProfile: (name: string, goal: number) => Promise<void>;
   toggleStarCard: (cardId: string) => Promise<void>;
+  setStudyPreferences: (mode: "learn" | "test", value: NonNullable<Prefs["study"]>["learn"] | NonNullable<Prefs["study"]>["test"]) => Promise<void>;
 };
 
 const StoreContext = createContext<StoreValue | null>(null);
@@ -74,6 +77,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<StudyHistory[]>([]);
   const [events, setEvents] = useState<StudyEvent[]>([]);
   const [activity, setActivity] = useState<DailyActivity[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
 
   const refresh = useCallback(async () => {
     const db = getDb();
@@ -93,11 +97,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const subscription = liveQuery(async () => {
       const db = getDb();
-      return Promise.all([db.decks.toArray(), db.cards.toArray(), getPrefs(), db.activity.toArray(), db.history.toArray(), db.events.toArray()]);
+      return Promise.all([db.decks.toArray(), db.cards.toArray(), getPrefs(), db.activity.toArray(), db.history.toArray(), db.events.toArray(), db.sessions.toArray()]);
     }).subscribe({
-      next: ([nextRecords, nextCards, nextPrefs, nextActivity, nextHistory, nextEvents]) => {
+      next: ([nextRecords, nextCards, nextPrefs, nextActivity, nextHistory, nextEvents, nextSessions]) => {
         setRecords(nextRecords.filter(row => !row.deletedAt && !row.purgedAt)); setCards(nextCards.filter(row => !row.deletedAt && !row.purgedAt)); setPrefs(nextPrefs);
-        setActivity(nextActivity); setHistory(nextHistory.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setEvents(nextEvents.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setReady(true); setError("");
+        setActivity(nextActivity); setHistory(nextHistory.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setEvents(nextEvents.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setSessions(nextSessions.filter(row => !row.endedAt && row.correct + row.incorrect > 0)); setReady(true); setError("");
       },
       error: () => setError("BrainBo could not open local storage. Please allow browser storage and reload."),
     });
@@ -192,6 +196,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     });
     await refresh();
   }, [refresh]);
+  const setStudyPreferences = useCallback(async (mode: "learn" | "test", preferences: NonNullable<Prefs["study"]>["learn"] | NonNullable<Prefs["study"]>["test"]) => {
+    await updatePrefs({ study: { ...prefs.study, [mode]: preferences } });
+    await refresh();
+  }, [prefs.study, refresh]);
 
   const value = useMemo<StoreValue>(
     () => ({
@@ -201,6 +209,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       activity,
       history,
       events,
+      sessions,
       todayCount,
       streak,
       cardsForDeck,
@@ -212,6 +221,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteDeck,
       setProfile,
       toggleStarCard,
+      setStudyPreferences,
     }),
     [
       ready,
@@ -220,6 +230,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       activity,
       history,
       events,
+      sessions,
       todayCount,
       streak,
       cardsForDeck,
@@ -231,6 +242,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteDeck,
       setProfile,
       toggleStarCard,
+      setStudyPreferences,
     ],
   );
 

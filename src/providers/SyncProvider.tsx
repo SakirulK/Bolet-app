@@ -48,7 +48,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const identity = useRef<User | null>(null);
   const stopped = useRef(false);
   const retry = useCallback(async (consent = false) => {
-    if (running.current || stopped.current) return;
+    // A manual retry must observe the real in-flight result. Returning early
+    // would let callers announce success while that operation later failed.
+    if (running.current) return running.current;
+    if (stopped.current) return;
     const work = async () => {
       const db = getDb();
       const count = await db.syncQueue.count(); setPending(count);
@@ -68,9 +71,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         }
         setInitialSyncComplete(true);
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String((cause as { message?: string }).message ?? 'Could not reach your account. Your local data is safe to keep using.'));
+        const failure = cause instanceof Error ? cause : new Error(String((cause as { message?: string }).message ?? 'Could not reach your account. Your local data is safe to keep using.'));
+        setError(failure.message);
         setStatus('Sync problem — retry');
         setInitialSyncComplete(true);
+        throw failure;
       }
     };
     running.current = work();
@@ -92,14 +97,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
           if (previousId !== identity.current?.id) setMigrationComplete(false);
           setInitialSyncComplete(!identity.current);
           // Leave the Auth callback before issuing another Supabase request.
-          setTimeout(() => void retry(), 0);
+          setTimeout(() => { void retry().catch(() => undefined); }, 0);
         });
         unsubscribe = () => data.subscription.unsubscribe();
         void client.auth.getSession().then(({ data, error }) => {
           if (error) setError(error.message);
           identity.current = data.session?.user ?? null; setUser(identity.current);
           setConsentDeferred(identity.current ? window.localStorage.getItem(consentKey(identity.current.id)) === 'true' : false);
-          setAuthReady(true); setInitialSyncComplete(!identity.current); void retry();
+          setAuthReady(true); setInitialSyncComplete(!identity.current); void retry().catch(() => undefined);
         });
       }
     } catch (cause) { setTimeout(() => { setError(String(cause)); setAuthReady(true); setInitialSyncComplete(true); }, 0); }
@@ -110,7 +115,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (next === signature) return;
       signature = next;
       clearTimeout(debounce);
-      debounce = setTimeout(() => void retry(), 500);
+      debounce = setTimeout(() => { void retry().catch(() => undefined); }, 500);
     });
     const local = liveQuery(async () => (await Promise.all([
       getDb().decks.filter(deck => !deck.purgedAt).count(),
@@ -118,10 +123,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       getDb().history.count(),
       getDb().events.count(),
     ])).some(Boolean)).subscribe(setLocalData);
-    const localWrite = () => { clearTimeout(debounce); debounce = setTimeout(() => void retry(), 500); };
+    const localWrite = () => { clearTimeout(debounce); debounce = setTimeout(() => { void retry().catch(() => undefined); }, 500); };
     window.addEventListener('bolet-local-write', localWrite);
-    const interval = window.setInterval(() => void retry(), 10_000);
-    const online = () => void retry();
+    const interval = window.setInterval(() => { void retry().catch(() => undefined); }, 10_000);
+    const online = () => { void retry().catch(() => undefined); };
     window.addEventListener('online', online); window.addEventListener('offline', online); window.addEventListener('focus', online);
     return () => { stopped.current = true; unsubscribe?.(); queue.unsubscribe(); local.unsubscribe(); window.removeEventListener('bolet-local-write', localWrite); clearTimeout(debounce); clearInterval(interval); window.removeEventListener('online', online); window.removeEventListener('offline', online); window.removeEventListener('focus', online); };
   }, [retry]);

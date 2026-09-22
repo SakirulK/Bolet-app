@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
-import { Flame, Layers, Plus, Target } from "lucide-react";
+import { ArrowRight, Flame, Layers, Plus, Target } from "lucide-react";
 import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
 import { DeckCard } from "@/components/decks/DeckCard";
 import { Button } from "@/components/ui/Button";
@@ -24,6 +24,7 @@ export function HomeDashboard() {
     prefs,
     todayCount,
     streak,
+    sessions,
     masteryForDeck,
     dueCountForDeck,
     toggleFavorite,
@@ -63,25 +64,32 @@ export function HomeDashboard() {
 
   const allCards = decks.flatMap(deck => deck.cards);
   const due = getDueCards(allCards);
+  const lastDeck = continueDecks[0];
+  const resumable = sessions.slice().sort((a, b) => b.updatedAt - a.updatedAt).find(session => decks.some(deck => deck.id === session.deckId));
+  const resumeDeck = resumable ? decks.find(deck => deck.id === resumable.deckId) : undefined;
+  const primaryAction = resumable && resumeDeck
+    ? { label: `Resume ${resumeDeck.title}`, detail: `${resumable.studiedIds.length} of ${resumable.cardIds.length} cards reviewed`, href: studyUrl(resumeDeck.id) }
+    : lastDeck
+    ? { label: `Continue ${lastDeck.title}`, detail: `${lastDeck.cards.length} cards · ${dueCountForDeck(lastDeck.id)} due`, href: studyUrl(lastDeck.id) }
+    : due.length
+      ? { label: `Review ${due.length} due cards`, detail: `About ${estimateReviewTime(due.length)} minutes`, href: "/review" }
+      : null;
   if (!ready) return <ScreenSkeleton />;
 
   return (
     <div className="space-y-8">
-      <div className="dashboard-hero">
+      <div className="dashboard-hero !min-h-0">
         <div className="relative z-10 max-w-xl">
           <p className="hero-eyebrow">Your space to grow · {greeting}</p>
-          <h1 className="mt-4 font-display text-4xl leading-[1.08] tracking-tight sm:text-5xl">
+          <h1 className="mt-3 font-display text-3xl leading-[1.08] tracking-tight sm:text-4xl">
             {prefs.displayName && prefs.displayName !== "there" ? `Ready when you are, ${prefs.displayName}.` : "Ready when you are."}
           </h1>
-          <p className="mt-4 max-w-sm text-base leading-7 text-white/75">
-            A little curiosity. A little practice. Make room for what you’ll learn next.
-          </p>
-        <Button size="lg" className="hero-action mt-6" onClick={() => setCreateOpen(true)}>
-          <Plus className="h-5 w-5" aria-hidden />
-          Create deck
-        </Button>
+          <p className="mt-3 max-w-md text-base leading-7 text-white/75">{primaryAction ? primaryAction.detail : decks.length ? "You’re caught up. Choose a deck when you’re ready." : "Create your first deck and turn what you’re learning into something you remember."}</p>
+          <div className="mt-5 flex flex-wrap gap-3">
+            {primaryAction ? <Button size="lg" className="hero-action" onClick={() => router.push(primaryAction.href)}>{primaryAction.label}<ArrowRight className="h-5 w-5" /></Button> : <Button size="lg" className="hero-action" onClick={() => setCreateOpen(true)}><Plus className="h-5 w-5" />Create your first deck</Button>}
+            {!!decks.length && <Button size="lg" variant="secondary" className="border-white/20 bg-white/5 text-white hover:bg-white/10" onClick={() => setCreateOpen(true)}><Plus className="h-5 w-5" />New deck</Button>}
+          </div>
         </div>
-        <div className="hero-art" aria-hidden="true"><div className="hero-orbit" /><div className="hero-paper hero-paper-back" /><div className="hero-paper hero-paper-front"><span>Small steps.</span><strong>Big ideas.</strong><span className="hero-paper-star">✳</span></div></div>
       </div>
 
       <SearchBar
@@ -137,7 +145,7 @@ export function HomeDashboard() {
         </div>
         {continueDecks.length === 0 ? (
           <p className="rounded-2xl border border-dashed border-edge bg-surface px-5 py-8 text-sm text-muted">
-            No sessions yet. Open Study and run through a few cards.
+            {decks.length ? "No sessions yet. Choose a deck and begin when you’re ready." : "Create a deck to start studying."}
           </p>
         ) : (
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">

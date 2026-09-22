@@ -1,7 +1,11 @@
 import type { Card, StudyEvent, StudyHistory } from "@/types";
 import { addDays, computeStreak, localDateKey, parseLocalDateKey } from "@/lib/dates";
 export function accuracy(correct: number, incorrect: number) { return correct + incorrect ? `${Math.round(correct / (correct + incorrect) * 100)}%` : "—"; }
-export function needsAttention(card: Card, now = Date.now()) { return card.incorrectCount >= 2 || card.dontKnowCount >= 2 || (card.reviewCount > 0 && card.mastery < 30) || (card.reviewCount > 0 && card.nextReviewAt < now - 86_400_000); }
+export function needsAttention(card: Card, now = Date.now()) {
+  const overdue = card.reviewCount > 0 && card.nextReviewAt < now - 86_400_000;
+  if (card.masteryLevel === "Mastered" && card.correctStreak >= 3) return overdue;
+  return card.incorrectCount >= 2 || card.dontKnowCount >= 2 || (card.reviewCount > 0 && card.mastery < 30) || overdue;
+}
 export function studyAnalytics(events: StudyEvent[], history: StudyHistory[], now = new Date()) {
   const today = localDateKey(now), rows = events.filter(event => localDateKey(new Date(event.at)) === today);
   const dates = [...new Set(events.map(event => localDateKey(new Date(event.at))).concat(history.filter(item => item.correct + item.incorrect > 0).map(item => localDateKey(new Date(item.startedAt)))))].sort();
