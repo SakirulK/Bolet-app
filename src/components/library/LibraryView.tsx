@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FileUp, Plus } from "lucide-react";
-import { CreateDeckDialog } from "@/components/decks/CreateDeckDialog";
-import { ImportDeckDialog } from "@/components/decks/ImportDeckDialog";
+import dynamic from "next/dynamic";
+const CreateDeckDialog = dynamic(() => import("@/components/decks/CreateDeckDialog").then(module => module.CreateDeckDialog));
+const ImportDeckDialog = dynamic(() => import("@/components/decks/ImportDeckDialog").then(module => module.ImportDeckDialog));
 import { DeckCard } from "@/components/decks/DeckCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/Button";
@@ -12,8 +13,10 @@ import { ScreenSkeleton } from "@/components/ui/ScreenSkeleton";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { cn } from "@/lib/cn";
 import { useStore } from "@/providers/StoreProvider";
+import { readDraft, saveDraft } from "@/data/drafts";
 
 const FILTERS = ["All", "Favorites"] as const;
+type LibraryViewDraft = { version: 1; query: string; filter: (typeof FILTERS)[number]; subject: string; sort: string };
 
 export function LibraryView() {
   const router = useRouter();
@@ -27,6 +30,39 @@ export function LibraryView() {
   const [createOpen, setCreateOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [imported, setImported] = useState<{ id: string; title: string } | null>(null);
+  const [viewReady, setViewReady] = useState(false);
+  const latestView = useRef<LibraryViewDraft>({ version: 1, query: "", filter: "All", subject: "All subjects", sort: "newest" });
+
+  useEffect(() => {
+    let active = true;
+    const urlQuery = new URLSearchParams(window.location.search).get("q");
+    void readDraft<LibraryViewDraft>("library-view").then(saved => {
+      if (!active) return;
+      if (saved?.version === 1) {
+        latestView.current = { ...saved, query: urlQuery ?? (typeof saved.query === "string" ? saved.query : "") };
+        setQuery(urlQuery ?? (typeof saved.query === "string" ? saved.query : "")); setFilter(FILTERS.includes(saved.filter) ? saved.filter : "All");
+        setSubject(saved.subject || "All subjects"); setSort(["newest", "oldest", "alphabetical"].includes(saved.sort) ? saved.sort : "newest");
+      } else if (urlQuery) setQuery(urlQuery);
+    }).finally(() => { if (active) setViewReady(true); });
+    return () => { active = false; };
+  }, []);
+  useEffect(() => {
+    const next = { version: 1 as const, query, filter, subject, sort };
+    latestView.current = next;
+    if (!viewReady) return;
+    const timer = window.setTimeout(() => void saveDraft("library-view", next), 200);
+    return () => window.clearTimeout(timer);
+  }, [filter, query, sort, subject, viewReady]);
+  useEffect(() => {
+    const flush = () => { if (viewReady) void saveDraft("library-view", latestView.current); };
+    const hidden = () => { if (document.visibilityState === "hidden") flush(); };
+    window.addEventListener("pagehide", flush); document.addEventListener("visibilitychange", hidden);
+    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", hidden); };
+  }, [viewReady]);
+  function checkpointView(next: LibraryViewDraft) {
+    latestView.current = next;
+    void saveDraft("library-view", next);
+  }
 
   const subjects = useMemo(() => {
     const unique = Array.from(new Set(decks.map((deck) => deck.subject))).sort();
@@ -66,7 +102,7 @@ export function LibraryView() {
       <SearchBar
         id="library-search"
         value={query}
-        onChange={setQuery}
+        onChange={value => { setQuery(value); checkpointView({ ...latestView.current, query: value }); }}
         placeholder="Search titles, subjects, or descriptions"
       />
 
@@ -77,7 +113,7 @@ export function LibraryView() {
               key={item}
               type="button"
               aria-pressed={filter === item}
-              onClick={() => setFilter(item)}
+              onClick={() => { setFilter(item); checkpointView({ ...latestView.current, filter: item }); }}
               className={cn(
                 "min-h-11 rounded-full border px-4 text-sm font-medium transition-colors",
                 filter === item
@@ -89,12 +125,12 @@ export function LibraryView() {
             </button>
           ))}
         </div>
-        <label className="flex items-center gap-2 text-sm text-muted">Sort<select value={sort} onChange={event => setSort(event.target.value)} className="h-11 min-w-0 max-w-full rounded-xl border border-edge bg-surface px-3 text-ink"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="alphabetical">Alphabetically</option></select></label>
+        <label className="flex items-center gap-2 text-sm text-muted">Sort<select value={sort} onChange={event => { const value = event.target.value; setSort(value); checkpointView({ ...latestView.current, sort: value }); }} className="h-11 min-w-0 max-w-full rounded-xl border border-edge bg-surface px-3 text-ink"><option value="newest">Newest first</option><option value="oldest">Oldest first</option><option value="alphabetical">Alphabetically</option></select></label>
         <label className="flex items-center gap-2 text-sm text-muted">
           Subject
           <select
             value={subject}
-            onChange={(event) => setSubject(event.target.value)}
+            onChange={(event) => { const value = event.target.value; setSubject(value); checkpointView({ ...latestView.current, subject: value }); }}
             className="h-11 min-w-0 max-w-full rounded-xl border border-edge bg-surface px-3 text-ink outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             {subjects.map((item) => (
@@ -120,11 +156,11 @@ export function LibraryView() {
         </div>
       )}
 
-      <CreateDeckDialog
+      {createOpen && <CreateDeckDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreated={(id) => router.push(`/library/${id}`)}
-      />
+      />}
       {importOpen && <ImportDeckDialog onClose={() => setImportOpen(false)} onImported={(id, title) => { setImportOpen(false); setImported({ id, title }); }} />}
     </div>
   );

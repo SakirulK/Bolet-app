@@ -9,11 +9,44 @@ import { SyncStatus } from "@/components/layout/SyncStatus";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { useStore } from "@/providers/StoreProvider";
 import { useSync } from "@/providers/SyncProvider";
+import { readDraft, saveDraft } from "@/data/drafts";
 
 const AUTH_ROUTES = new Set(["/welcome", "/sign-in", "/sign-up", "/forgot-password", "/reset-password"]);
 
 function AuthLoading() {
   return <AuthFrame title="Opening BrainBo…" description="Checking your account and the study data saved on this device."><div className="h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full w-1/2 animate-pulse rounded-full bg-accent" /></div></AuthFrame>;
+}
+
+function useScrollRecovery(pathname: string) {
+  useEffect(() => {
+    if (AUTH_ROUTES.has(pathname)) return;
+    const key = `navigation-scroll:${pathname}`;
+    let active = true;
+    let timer: number | undefined;
+    const save = () => void saveDraft(key, { version: 1, y: window.scrollY }).catch(() => undefined);
+    const onScroll = () => { window.clearTimeout(timer); timer = window.setTimeout(save, 250); };
+    const onHidden = () => { if (document.visibilityState === "hidden") save(); };
+    void readDraft<{ version: 1; y: number }>(key).then(draft => {
+      if (!active || draft?.version !== 1 || !Number.isFinite(draft.y) || draft.y <= 0) return;
+      // Content backed by IndexedDB can render just after the route itself.
+      let attempts = 0;
+      const restore = () => {
+        if (!active) return;
+        window.scrollTo({ top: draft.y, behavior: "instant" });
+        if (window.scrollY + 2 < draft.y && attempts++ < 8) window.setTimeout(restore, 50);
+      };
+      window.requestAnimationFrame(restore);
+    }).catch(() => undefined);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", save);
+    document.addEventListener("visibilitychange", onHidden);
+    return () => {
+      active = false; window.clearTimeout(timer); save();
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("pagehide", save);
+      document.removeEventListener("visibilitychange", onHidden);
+    };
+  }, [pathname]);
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -23,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { ready, prefs } = useStore();
   const [ignoreRecoveryError, setIgnoreRecoveryError] = useState(false);
   const authRoute = AUTH_ROUTES.has(pathname);
+  useScrollRecovery(pathname);
   const profileConfigured = !!prefs.profileConfigured || (prefs.displayName.trim() !== "" && prefs.displayName !== "there");
   useEffect(() => {
     if (!sync.configured || !sync.authReady) return;

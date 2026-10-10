@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { load } from './load-ts.mjs';
 globalThis.window = {};
 const { parseCards, exportDeck } = load('src/lib/deck-transfer.ts');
+const { detectFlashcards } = load('src/lib/flashcard-detection.ts');
 const { createBrainBoDeckFile, parseBrainBoDeck, sharedDeckInput, MAX_BRAINBO_DECK_BYTES } = load('src/lib/deck-share.ts');
 const { saveDeck, removeDeck, restoreDeck, permanentlyDeleteDeck } = load('src/data/decks.ts');
 const { getDb } = load('src/lib/db.ts');
@@ -21,6 +22,51 @@ test('imports all delimiters, CRLF, Unicode, headers, and quoted multiline CSV',
   assert.deepEqual(parseCards('Missing\nA,\nA,B,C', ',').invalid, [1, 2, 3]);
   assert.equal(parseCards('A,"unfinished', ',').quoted, true);
   assert.equal(parseCards('\n \n', 'auto').cards.length, 0);
+});
+
+test('detects slide notes, explicit separators, bullets and mixed multiline definitions', () => {
+  const activities = detectFlashcards(`Operating activities
+Cash flows from the main activities of the business.
+
+Investing activities
+Buying and selling long-term assets.
+Examples include equipment and buildings.`);
+  assert.deepEqual(activities.cards.map(({ term, definition }) => ({ term, definition })), [
+    { term: 'Operating activities', definition: 'Cash flows from the main activities of the business.' },
+    { term: 'Investing activities', definition: 'Buying and selling long-term assets.\nExamples include equipment and buildings.' },
+  ]);
+
+  const mixed = detectFlashcards(`Lecture 4
+• Photosynthesis
+  Converts light energy into chemical energy.
+  • occurs in chloroplasts
+CPU: Central Processing Unit: the main processor
+RAM — Random-access memory - temporary storage
+1. Mitochondria
+   Produces energy for the cell.
+Lecture 4`);
+  assert.deepEqual(mixed.cards.map(card => card.term), ['Photosynthesis', 'CPU', 'RAM', 'Mitochondria']);
+  assert.equal(mixed.cards[0].definition, 'Converts light energy into chemical energy.\n• occurs in chloroplasts');
+  assert.equal(mixed.cards[1].definition, 'Central Processing Unit: the main processor');
+  assert.equal(mixed.cards[2].definition, 'Random-access memory - temporary storage');
+  assert.equal(mixed.skipped.filter(item => item.reason === 'repeated-header').length, 2);
+});
+
+test('flags ambiguity, unmatched text, exact duplicates and conflicting definitions', () => {
+  const result = detectFlashcards(`Course overview
+Apple: A fruit
+Apple: A fruit
+Apple: A technology company
+Loose text with no matching definition
+42`);
+  assert.equal(result.cards.length, 3);
+  assert.ok(result.cards.slice(0, 2).every(card => card.issues.includes('conflicting-definition')));
+  assert.ok(result.cards[2].issues.includes('conflicting-definition'));
+  assert.ok(result.skipped.some(item => item.text === 'Course overview' && item.reason === 'unmatched'));
+  assert.ok(result.skipped.some(item => item.text === '42' && item.reason === 'slide-number'));
+  assert.deepEqual(detectFlashcards('Apple: A fruit\nApple: A fruit').cards.map(card => card.issues), [['exact-duplicate'], ['exact-duplicate']]);
+  assert.deepEqual(detectFlashcards('Concept\nA definition written without final punctuation').cards[0].issues, ['ambiguous']);
+  assert.deepEqual(detectFlashcards('   \n\n').cards, []);
 });
 
 test('deck edits persist order and mastery, reject invalid input, and deliberate tombstone deletion', async () => {

@@ -85,3 +85,32 @@ test('upload consent can be deferred without deleting or uploading local data',a
   await page.getByRole('button',{name:'Not now'}).click();await completeProfile(page);expect(cloud.size).toBe(0);expect((await records(page,'cards')).length).toBe(2);
   await page.goto('/profile');await expect(page.getByText('Local study data is waiting for your approval before it is added to this account.',{exact:true})).toBeVisible();
 });
+
+test('returning account opens its cached library while cloud requests are stalled', async ({ page, context }) => {
+  test.setTimeout(60000);
+  const cloud = new Map<string, Envelope>();
+  await mockCloud(context, cloud, () => true);
+  await page.goto('/welcome');
+  await page.getByRole('button', { name: 'Continue on this device' }).click();
+  await seedStudy(page, 2);
+  await signIn(page);
+  await page.getByRole('button', { name: 'Add this data to my account' }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await completeProfile(page);
+  await syncNow(page);
+  let release!: () => void;
+  const stalled = new Promise<void>(resolve => { release = resolve; });
+  let requested = false;
+  await context.route('**/rest/v1/**', async route => {
+    requested = true;
+    await stalled;
+    await route.fulfill({ json: [] });
+  });
+  try {
+    await page.goto('/library');
+    await expect.poll(() => requested).toBe(true);
+    await expect(page.getByRole('heading', { name: 'Your decks' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Biology & Computing' })).toBeVisible();
+    await expect(page.getByText('Getting your BrainBo library…')).toHaveCount(0);
+  } finally { release(); }
+});

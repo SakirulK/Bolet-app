@@ -3,7 +3,7 @@ import { commitAttempts, newHistory } from "@/data/history";
 import { answerSession, type Session } from "@/lib/study-session";
 
 /** Commit the answer, card mastery, daily activity and session together; retry-safe. */
-export async function recordAnswer(session: Session, known: boolean): Promise<Session> {
+export async function recordAnswer(session: Session, known: boolean, durationMs?: number): Promise<Session> {
   const db = getDb();
   return db.transaction("rw", [db.sessions, db.cards, db.decks, db.activity, db.history, db.events], async () => {
     const stored = await db.sessions.get(session.id);
@@ -14,7 +14,7 @@ export async function recordAnswer(session: Session, known: boolean): Promise<Se
     const next = answerSession(session, known, now);
     if (next === session) return session;
     const history = await db.history.get(session.id) ?? { ...newHistory(session.deckId, (await db.decks.get(session.deckId))!.title, "flashcards"), id: session.id, startedAt: session.startedAt };
-    await commitAttempts(history, [{ id: `${session.id}-${next.revision}`, cardId: card.id, correct: known, dontKnow: !known, durationMs: now - session.updatedAt }], !!next.endedAt);
+    await commitAttempts(history, [{ id: `${session.id}-${next.revision}`, cardId: card.id, correct: known, dontKnow: !known, durationMs: durationMs ?? now - session.updatedAt }], !!next.endedAt);
     await db.sessions.put(next);
     return next;
   });

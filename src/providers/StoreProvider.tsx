@@ -95,17 +95,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const subscription = liveQuery(async () => {
+    const onError = () => setError("BrainBo could not open local storage. Please allow browser storage and reload.");
+    // Keep large activity logs off the library's startup and edit path. Each
+    // subscription rereads only the tables whose data actually changed.
+    const library = liveQuery(async () => {
       const db = getDb();
-      return Promise.all([db.decks.toArray(), db.cards.toArray(), getPrefs(), db.activity.toArray(), db.history.toArray(), db.events.toArray(), db.sessions.toArray()]);
+      return Promise.all([db.decks.toArray(), db.cards.toArray(), getPrefs()]);
     }).subscribe({
-      next: ([nextRecords, nextCards, nextPrefs, nextActivity, nextHistory, nextEvents, nextSessions]) => {
-        setRecords(nextRecords.filter(row => !row.deletedAt && !row.purgedAt)); setCards(nextCards.filter(row => !row.deletedAt && !row.purgedAt)); setPrefs(nextPrefs);
-        setActivity(nextActivity); setHistory(nextHistory.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setEvents(nextEvents.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)); setSessions(nextSessions.filter(row => !row.endedAt && row.correct + row.incorrect > 0)); setReady(true); setError("");
+      next: ([nextRecords, nextCards, nextPrefs]) => {
+        setRecords(nextRecords.filter(row => !row.deletedAt && !row.purgedAt));
+        setCards(nextCards.filter(row => !row.deletedAt && !row.purgedAt));
+        setPrefs(nextPrefs); setReady(true); setError("");
       },
-      error: () => setError("BrainBo could not open local storage. Please allow browser storage and reload."),
+      error: onError,
     });
-    return () => subscription.unsubscribe();
+    const activity = liveQuery(() => getDb().activity.toArray()).subscribe({ next: setActivity, error: onError });
+    const history = liveQuery(() => getDb().history.toArray()).subscribe({
+      next: rows => setHistory(rows.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)), error: onError,
+    });
+    const events = liveQuery(() => getDb().events.toArray()).subscribe({
+      next: rows => setEvents(rows.filter(row => !(row as unknown as { purgedAt?: number }).purgedAt)), error: onError,
+    });
+    const sessions = liveQuery(() => getDb().sessions.toArray()).subscribe({
+      next: rows => setSessions(rows.filter(row => !row.endedAt && row.correct + row.incorrect > 0)), error: onError,
+    });
+    return () => { for (const subscription of [library, activity, history, events, sessions]) subscription.unsubscribe(); };
   }, []);
 
   const decks = useMemo(() => composeDecks(records, cards), [records, cards]);

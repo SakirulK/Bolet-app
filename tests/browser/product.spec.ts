@@ -2,6 +2,35 @@ import { test, expect } from '@playwright/test';
 import { seedStudy, openMode, setupLearn, learnAnswer, continueLearn, records } from './helpers';
 import type { Card, StudyEvent } from '../../src/types';
 test.setTimeout(60000);
+test('Home has one continuation path, focused navigation, and accurate favorite language', async ({ page }) => {
+  await seedStudy(page, 4);
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: 'Continue studying', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Continue studying', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('heading', { name: 'Review due', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Recent decks', exact: true })).toBeVisible();
+  const navigation = page.getByRole('navigation', { name: 'Main', exact: true }).last();
+  for (const label of ['Home', 'Library', 'Progress', 'Profile']) await expect(navigation.getByRole('link', { name: label, exact: true })).toBeVisible();
+  await expect(navigation.getByRole('link', { name: 'Study', exact: true })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Continue studying', exact: true }).click();
+  await expect(page).toHaveURL(/\/library\/learn-deck$/);
+  const favorite = page.getByRole('button', { name: 'Favorite', exact: true });
+  await expect(favorite).toBeVisible(); await favorite.click();
+  await expect(page.getByRole('button', { name: 'Favorited', exact: true })).toBeVisible();
+
+  await page.evaluate(() => new Promise<void>((resolve, reject) => {
+    const open = indexedDB.open('recall'); open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      const db = open.result, tx = db.transaction('sessions', 'readwrite');
+      tx.objectStore('sessions').put({ id: 'resume-home', deckId: 'learn-deck', startedAt: 1, updatedAt: Date.now(), options: { shuffle: false, direction: 'term', filter: 'all' }, cardIds: ['c0', 'c1'], queue: ['c1'], streaks: { c0: 1 }, missedIds: [], studiedIds: ['c0'], correct: 1, incorrect: 0, revision: 1 });
+      tx.oncomplete = () => { db.close(); resolve(); }; tx.onerror = () => reject(tx.error);
+    };
+  }));
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Resume Biology & Computing', exact: true }).click();
+  await expect(page.getByRole('heading', { name: 'Continue where you left off?', exact: true })).toBeVisible();
+});
+
 test('editor accepted aliases persist and feed Learn grading', async ({ page }) => {
   await page.goto('/library'); await page.getByRole('button', { name: 'Create deck', exact: true }).click();
   await page.getByLabel('Title', { exact: true }).fill('Accepted answers'); await page.getByRole('button', { name: 'Add card', exact: true }).click();

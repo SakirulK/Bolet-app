@@ -17,23 +17,44 @@ import { finishSession, recordAnswer } from "@/data/study";
 import type { Deck } from "@/types";
 import { getDb } from "@/lib/db";
 import type { Session as StudySessionState } from "@/lib/study-session";
+import { deleteDraft, readDraft, saveDraft } from "@/data/drafts";
+import { useActiveTimer } from "@/components/learning/useActiveTimer";
+
+type FlashcardUiDraft = { version: 1; sessionId: string; revision: number; flipped: boolean; browseHistory: string[] };
 
 export function StudySession({ deckId, ids, filter = "all" }: { deckId: string; ids?: string[]; filter?: ContentFilter }) {
   const { ready, decks } = useStore();
   const router = useRouter();
   const [recovery, setRecovery] = useState<StudySessionState | null | undefined>(undefined);
   const [resumed, setResumed] = useState<StudySessionState | null>(null);
+  const checkedRecovery = useRef("");
   useEffect(() => {
     let active = true;
-    if (!ready || ids || filter !== "all") {
+    if (!ready) return () => { active = false; };
+    const recoveryKey = `${deckId}:${ids?.join(",") ?? ""}:${filter}`;
+    if (checkedRecovery.current === recoveryKey) return () => { active = false; };
+    checkedRecovery.current = recoveryKey;
+    if (ids || filter !== "all") {
       void Promise.resolve().then(() => { if (active) setRecovery(null); });
       return () => { active = false; };
     }
+    const deck = decks.find(item => item.id === deckId);
     void getDb().sessions.where("deckId").equals(deckId).filter(item => !item.endedAt && item.correct + item.incorrect > 0).reverse().sortBy("updatedAt")
-      .then(items => { if (active) setRecovery(items[0] ?? null); })
+      .then(items => {
+        if (!active) return;
+        const validIds = new Set(deck?.cards.map(card => card.id) ?? []);
+        const saved = items.find(item => item.queue.some(id => validIds.has(id)));
+        setRecovery(saved ? {
+          ...saved,
+          cardIds: saved.cardIds.filter(id => validIds.has(id)),
+          queue: saved.queue.filter(id => validIds.has(id)),
+          studiedIds: saved.studiedIds.filter(id => validIds.has(id)),
+          missedIds: saved.missedIds.filter(id => validIds.has(id)),
+        } : null);
+      })
       .catch(() => { if (active) setRecovery(null); });
     return () => { active = false; };
-  }, [deckId, filter, ids, ready]);
+  }, [deckId, decks, filter, ids, ready]);
   if (!ready) return <ScreenSkeleton />;
   const deck = decks.find(deck => deck.id === deckId);
   if (!deck) return <div className="space-y-4"><h1 className="font-display text-3xl">Deck not found</h1><Button onClick={() => router.push("/library")}>Back to library</Button></div>;
@@ -54,7 +75,11 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
   const [browseHistory, setBrowseHistory] = useState<string[]>([]);
+  const [uiReady, setUiReady] = useState(false), [restored, setRestored] = useState(false);
   const lock = useRef(false);
+  const activeTimer = useActiveTimer();
+  const uiDraftKey = `flashcards-ui:${session.id}`;
+  const initialUiState = useRef({ id: session.id, revision: session.revision, cardIds: new Set(deck.cards.map(card => card.id)) });
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const stats = sessionStats(session);
@@ -63,6 +88,26 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
   // Persist a newly configured session (and any pre-answer browsing) once. After
   // the first graded attempt, recordAnswer owns the transactional checkpoint.
   useEffect(() => { if (session.cardIds.length && !session.endedAt && session.revision === 0) void getDb().sessions.put(session); }, [session]);
+  useEffect(() => {
+    let active = true;
+    void readDraft<FlashcardUiDraft>(uiDraftKey).then(saved => {
+      const initial = initialUiState.current;
+      if (!active || saved?.version !== 1 || saved.sessionId !== initial.id || saved.revision !== initial.revision || !Array.isArray(saved.browseHistory)) return;
+      setFlipped(saved.flipped); setBrowseHistory(saved.browseHistory.filter(id => initial.cardIds.has(id))); setRestored(true);
+    }).finally(() => { if (active) setUiReady(true); });
+    return () => { active = false; };
+  }, [uiDraftKey]);
+  useEffect(() => {
+    if (!uiReady || session.endedAt) return;
+    const timer = window.setTimeout(() => void saveDraft(uiDraftKey, { version: 1, sessionId: session.id, revision: session.revision, flipped, browseHistory } satisfies FlashcardUiDraft), 100);
+    return () => window.clearTimeout(timer);
+  }, [browseHistory, flipped, session.endedAt, session.id, session.revision, uiDraftKey, uiReady]);
+  useEffect(() => {
+    const flush = () => { if (uiReady && !session.endedAt) void saveDraft(uiDraftKey, { version: 1, sessionId: session.id, revision: session.revision, flipped, browseHistory } satisfies FlashcardUiDraft); };
+    const visibility = () => { if (document.visibilityState === "hidden") flush(); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+  }, [browseHistory, flipped, session.endedAt, session.id, session.revision, uiDraftKey, uiReady]);
   let hash = 2166136261;
   for (const char of `${session.id}-${session.revision}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
   const firstSide = session.options.direction === "random" ? (hash & 1 ? "term" : "definition") : session.options.direction;
@@ -71,14 +116,17 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
     if (lock.current || settings || session.endedAt || !session.queue.length) return;
     lock.current = true; setBusy(true); setError("");
     try {
-      const next = await recordAnswer(session, known);
+      const next = await recordAnswer(session, known, activeTimer.read());
       if (!mounted.current) return;
       setSession(next); setFlipped(false);
+      if (next.endedAt) await deleteDraft(uiDraftKey);
+      else await saveDraft(uiDraftKey, { version: 1, sessionId: next.id, revision: next.revision, flipped: false, browseHistory } satisfies FlashcardUiDraft);
+      activeTimer.reset();
       setFeedback(known ? (next.streaks[session.queue[0]] >= 2 ? "Card mastered. Nicely done." : "Good recall. You’ll see it once more.") : "No rush. This card will come back for another try.");
       await new Promise(resolve => setTimeout(resolve, 250));
     } catch (error) { if (mounted.current) setError(error instanceof Error ? error.message : "Could not save your answer. Please try again."); }
     finally { lock.current = false; if (mounted.current) setBusy(false); }
-  }, [session, settings]);
+  }, [activeTimer, browseHistory, session, settings, uiDraftKey]);
 
   useEffect(() => {
     function key(event: KeyboardEvent) {
@@ -103,13 +151,15 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
     setFlipped(false); setFeedback("");
     if (next) {
       setBrowseHistory(items => [...items, card.id]);
-      setSession(current => ({ ...current, queue: [...current.queue.slice(1), current.queue[0]], updatedAt: Date.now() }));
+      const nextSession = { ...session, queue: [...session.queue.slice(1), session.queue[0]], updatedAt: Date.now() };
+      setSession(nextSession); void getDb().sessions.put(nextSession).catch(() => setError("Could not save this position. Try again."));
       return;
     }
     const previous = browseHistory.at(-1);
     if (!previous) return;
     setBrowseHistory(items => items.slice(0, -1));
-    setSession(current => ({ ...current, queue: [previous, ...current.queue.filter((id, index) => id !== previous || index !== current.queue.indexOf(previous))], updatedAt: Date.now() }));
+    const nextSession = { ...session, queue: [previous, ...session.queue.filter((id, index) => id !== previous || index !== session.queue.indexOf(previous))], updatedAt: Date.now() };
+    setSession(nextSession); void getDb().sessions.put(nextSession).catch(() => setError("Could not save this position. Try again."));
   }
 
   async function restart(options: StudyOptions, missedOnly = false) {
@@ -118,8 +168,10 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
     try {
       if (!completed && stats.attempts) await finishSession(session);
       const cards = missedOnly ? deck.cards.filter(card => session.missedIds.includes(card.id)) : deck.cards;
+      await deleteDraft(uiDraftKey);
       const next = startSession(deck.id, cards, options);
       setSession(next); setFlipped(false); setFeedback(""); setSettings(false);
+      activeTimer.reset();
     } catch { setError("Could not save your session. Please try again."); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -128,6 +180,7 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
     lock.current = true; setBusy(true); setError("");
     try {
       if (stats.attempts && !completed) setSession(await finishSession(session));
+      await deleteDraft(uiDraftKey);
       if (exit) router.push(`/library/${deck.id}`);
       else setSettings(false);
     } catch { setError("Could not save your session. Please try again."); }
@@ -143,6 +196,7 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
       <Button variant="secondary" size="icon" aria-label="Study settings" disabled={busy} onClick={openSettings}><Settings2 size={20} /></Button>
     </header>
 
+    {restored && !completed && <p role="status" className="text-sm text-accent">Restored where you left off.</p>}
     {completed ? <section className="panel-surface my-auto space-y-6 p-6 text-center sm:p-10">
       <Trophy className="mx-auto h-10 w-10 text-accent" aria-hidden />
       <div><p className="mb-2 text-sm text-accent">A little practice, a little more confidence.</p><h2 className="font-display text-3xl sm:text-4xl">Session Complete</h2></div>

@@ -1,7 +1,7 @@
 "use client";
-import { readDraft, saveDraft } from "@/data/drafts";
+import { deleteDraft, readDraft, saveDraft } from "@/data/drafts";
 import { LocalLink } from "@/components/ui/LocalLink";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StarButton } from "./StarButton";
@@ -15,8 +15,9 @@ import { createLearnState, advanceLearn, type LearnState } from "@/lib/learning/
 import { newHistory, commitAttempts } from "@/data/history";
 import { useStore } from "@/providers/StoreProvider";
 import type { Deck, StudyHistory } from "@/types";
+import { useActiveTimer } from "./useActiveTimer";
 
-type LearnDraft = { round: Round; answer: string; feedback: { correct: boolean; dontKnow: boolean; original: boolean } | null; direction: Direction; choice: boolean; written: boolean; smart: boolean; typos: boolean };
+type LearnDraft = { version?: 1; round: Round; answer: string; feedback: { correct: boolean; dontKnow: boolean; original: boolean } | null; retype?: string | null; direction: Direction; choice: boolean; written: boolean; smart: boolean; typos: boolean; activeMs?: number };
 type Round = { state: LearnState; question: Question; history: StudyHistory };
 export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initialFilter?: ContentFilter }) {
   const { history, prefs, setStudyPreferences } = useStore();
@@ -30,10 +31,14 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
   const [answer, setAnswer] = useState(""), [feedback, setFeedback] = useState<{ correct: boolean; dontKnow: boolean; original: boolean } | null>(null);
   const [retype, setRetype] = useState<string | null>(null), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const [recovery, setRecovery] = useState<LearnDraft | null>(null);
+  const [restored, setRestored] = useState(false);
   useEffect(() => { void readDraft<LearnDraft>(`learn:${deck.id}`).then(draft => {
-    if (draft && !draft.round.state.done && draft.round.state.ids.every(id => deck.cards.some(card => card.id === id))) setRecovery(draft);
+    if (draft?.round?.state && Array.isArray(draft.round.state.ids) && !draft.round.state.done && draft.round.state.ids.every(id => deck.cards.some(card => card.id === id))) setRecovery(draft);
   }).catch(() => setError("The saved Learn session could not be opened. You can start a new session safely.")); }, [deck.id, deck.cards]);
-  const lock = useRef(false), started = useRef(0), promptRef = useRef<HTMLHeadingElement>(null);
+  const lock = useRef(false), promptRef = useRef<HTMLHeadingElement>(null);
+  const activeTimer = useActiveTimer();
+  const draftKey = `learn:${deck.id}`;
+  const studyMeta = useMemo(() => ({ mode: "learn" as const, deckId: deck.id, title: deck.title, href: studyUrl(deck.id, "learn") }), [deck.id, deck.title]);
   const eligible = filterCards(deck.cards, filter);
   const recommended = recommendRounds(eligible, history.filter(item => item.deckId === deck.id));
   function questionFor(state: LearnState, index: number) {
@@ -46,23 +51,34 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
     if (!cards.length || (!choice && !written)) return;
     void setStudyPreferences("learn", { shuffle, direction, choice, written, smart, typos, rounds: roundCount });
     const state = createLearnState((shuffle ? shuffled(cards) : cards).map(card => card.id), roundCount === "auto" ? recommendRounds(cards, history.filter(item => item.deckId === deck.id)) : Number(roundCount));
+    void deleteDraft(draftKey);
     setRound({ state, question: questionFor(state, 0), history: newHistory(deck.id, deck.title, "learn") });
-    setAnswer(""); setFeedback(null); setRetype(null); setError(""); started.current = Date.now();
+    setAnswer(""); setFeedback(null); setRetype(null); setRecovery(null); setRestored(false); setError(""); activeTimer.reset();
   }
+  // Announce a new question once; autosaving an answer must never steal focus.
+  const activeQuestionId = round && !round.state.done ? round.question.id : null;
+  useEffect(() => {
+    if (activeQuestionId) promptRef.current?.focus();
+  }, [activeQuestionId]);
   useEffect(() => {
     if (!round || round.state.done) return;
-    promptRef.current?.focus();
     const timer = window.setTimeout(() => {
-      if (!feedback) void saveDraft(`learn:${deck.id}`, { round, answer, feedback, direction, choice, written, smart, typos }).catch(() => setError("Could not save your recovery draft. Keep this page open and try again."));
-    }, 250);
+      void saveDraft(draftKey, { version: 1, round, answer, feedback, retype, direction, choice, written, smart, typos, activeMs: activeTimer.read() } satisfies LearnDraft, studyMeta).catch(() => setError("Could not save your recovery draft. Your work is still visible; try again."));
+    }, 200);
     return () => window.clearTimeout(timer);
-  }, [answer, choice, deck.id, direction, feedback, round, smart, typos, written]);
+  }, [activeTimer, answer, choice, direction, draftKey, feedback, retype, round, smart, studyMeta, typos, written]);
+  useEffect(() => {
+    const flush = () => { if (round && !round.state.done) void saveDraft(draftKey, { version: 1, round, answer, feedback, retype, direction, choice, written, smart, typos, activeMs: activeTimer.read() } satisfies LearnDraft, studyMeta); };
+    const visibility = () => { if (document.visibilityState === "hidden") flush(); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+  }, [activeTimer, answer, choice, direction, draftKey, feedback, retype, round, smart, studyMeta, typos, written]);
   async function grade(dontKnow = false) {
     if (!round || feedback || lock.current) return;
     const correct = !dontKnow && (round.question.type === "written" ? gradeWrittenAnswer(answer, round.question.expected, { smartGrading: smart, allowMinorSpellingMistakes: typos, acceptedAnswers: round.question.acceptedAnswers }) : answer === round.question.expected);
     const result = { correct, dontKnow, original: correct };
     lock.current = true; setBusy(true);
-    try { await saveDraft(`learn:${deck.id}`, { round, answer, feedback: result, direction, choice, written, smart, typos }); setFeedback(result); }
+    try { await saveDraft(draftKey, { version: 1, round, answer, feedback: result, retype, direction, choice, written, smart, typos, activeMs: activeTimer.read() } satisfies LearnDraft, studyMeta); setFeedback(result); }
     catch { setError("Could not save this answer. Please try again."); }
     finally { lock.current = false; setBusy(false); }
   }
@@ -73,17 +89,18 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
     try {
       const state = advanceLearn(round.state, feedback.correct, feedback.dontKnow);
       const saved = await commitAttempts({ ...round.history, rounds: state.completedRounds }, [{ id: round.question.id, cardId: round.question.cardId, correct: feedback.correct, dontKnow: feedback.dontKnow,
-        rating: feedback.correct ? round.question.type === "choice" ? "hard" : "good" : "again", override: feedback.correct !== feedback.original, answer, durationMs: Date.now() - started.current }], state.done);
+        rating: feedback.correct ? round.question.type === "choice" ? "hard" : "good" : "again", override: feedback.correct !== feedback.original, answer, durationMs: activeTimer.read() }], state.done);
       const nextRound = { state, history: saved, question: state.done ? round.question : questionFor(state, saved.correct + saved.incorrect) };
-      await saveDraft(`learn:${deck.id}`, { round: nextRound, answer: '', feedback: null, direction, choice, written, smart, typos });
+      if (state.done) await deleteDraft(draftKey);
+      else await saveDraft(draftKey, { version: 1, round: nextRound, answer: '', feedback: null, retype: null, direction, choice, written, smart, typos, activeMs: 0 } satisfies LearnDraft, studyMeta);
       setRound(nextRound);
-      setFeedback(null); setAnswer(""); setRetype(null); started.current = Date.now();
+      setFeedback(null); setAnswer(""); setRetype(null); activeTimer.reset();
     } catch (e) { setError(e instanceof Error ? e.message : "Could not save progress. Try again."); }
     finally { lock.current = false; setBusy(false); }
   }
   const card = deck.cards.find(card => card.id === round?.question.cardId);
   if (!round) return <div className="mx-auto max-w-2xl space-y-6"><header><p className="text-sm text-accent">{deck.title}</p><h1 className="font-display text-3xl">Set up Learn</h1><p className="mt-2 text-muted">Active recall, with extra practice where you need it.</p></header>
-    {recovery && <div className="space-y-2 rounded-2xl border border-edge p-4"><p className="text-sm text-muted">An unfinished Learn session is saved on this device.</p><Button variant="secondary" onClick={() => { setRound(recovery.round); setAnswer(recovery.answer); setFeedback(recovery.feedback); setDirection(recovery.direction); setChoice(recovery.choice); setWritten(recovery.written); setSmart(recovery.smart); setTypos(recovery.typos); started.current = Date.now(); }}>Resume saved Learn session</Button></div>}
+    {recovery && <div className="space-y-3 rounded-2xl border border-edge p-4"><p className="text-sm text-muted">An unfinished Learn session is saved on this device.</p><div className="flex flex-wrap gap-2"><Button variant="secondary" onClick={() => { setRound(recovery.round); setAnswer(recovery.answer); setFeedback(recovery.feedback); setRetype(recovery.retype ?? null); setDirection(recovery.direction); setChoice(recovery.choice); setWritten(recovery.written); setSmart(recovery.smart); setTypos(recovery.typos); activeTimer.reset(recovery.activeMs ?? 0); setRecovery(null); setRestored(true); }}>Resume saved Learn session</Button><Button variant="ghost" onClick={() => { void deleteDraft(draftKey); setRecovery(null); }}>Discard saved session</Button></div></div>}
     <Section title="Content"><ContentSelect value={filter} onChange={setFilter} /><Toggle label="Shuffle" value={shuffle} onChange={setShuffle} /><p className="text-sm text-muted">{eligible.length} eligible cards</p></Section>
     <Section title="Answer direction"><DirectionSelect value={direction} onChange={setDirection} /></Section>
     <Section title="Question types"><Toggle label="Multiple Choice" value={choice} onChange={setChoice} /><Toggle label="Written Answer" value={written} onChange={setWritten} />{!choice && !written && <p role="alert" className="text-danger">Choose at least one question type.</p>}{written && <details open className="rounded-2xl border border-edge p-4"><summary className="min-h-11 cursor-pointer font-medium">Written answer grading</summary><div className="mt-3 space-y-3"><Toggle label="Smart Grading" value={smart} onChange={setSmart} /><p className="text-sm text-muted">Accept author-approved equivalent answers. Smart Grading never guesses meaning and works offline.</p><Toggle label="Spelling matters" value={!typos} onChange={value => setTypos(!value)} /></div></details>}</Section>
@@ -99,13 +116,13 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
   if (!card) return <p role="alert">This card was deleted. <LocalLink href={`/library/${deck.id}`} className="underline">Back to Deck</LocalLink></p>;
   const reviewedThisRound = Object.keys(round.state.visits).length;
   const learnProgress = (round.state.completedRounds + Math.min(1, reviewedThisRound / Math.max(1, round.state.ids.length))) / round.state.rounds * 100;
-  return <div className="mx-auto max-w-3xl space-y-6"><header className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-accent">{deck.title} · Learn</p><h1 className="font-display text-2xl">Round {round.state.round} of {round.state.rounds}</h1></div><LocalLink className="study-link" href={`/library/${deck.id}`}>Save & Exit</LocalLink></header>
+  return <div className="mx-auto max-w-3xl space-y-6"><header className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-sm text-accent">{deck.title} · Learn</p><h1 className="font-display text-2xl">Round {round.state.round} of {round.state.rounds}</h1></div><LocalLink className="study-link" href={`/library/${deck.id}`}>Save & Exit</LocalLink></header>{restored && <p role="status" className="text-sm text-accent">Restored where you left off.</p>}
     <ProgressBar label={`${reviewedThisRound} of ${round.state.ids.length} cards reviewed this round · ${attempts} answered`} value={learnProgress} />
     <div className="flex items-start justify-between gap-4"><h2 ref={promptRef} tabIndex={-1} className="whitespace-pre-wrap break-words font-display text-3xl outline-none">{round.question.prompt}</h2><StarButton card={card} /></div>
     <form className="space-y-5" onSubmit={e => { e.preventDefault(); if (feedback) void next(); else void grade(); }}>
       <QuestionAnswer question={round.question} value={answer} onChange={setAnswer} disabled={!!feedback || busy} />
       {!feedback ? <div className="flex gap-3"><Button type="submit" disabled={busy || !answer.trim()}>Check Answer</Button><Button variant="secondary" disabled={busy} onClick={() => void grade(true)}>Don’t Know</Button></div> : <div className="space-y-4 rounded-2xl bg-surface-2 p-5" aria-live="polite"><p className="font-medium">{feedback.dontKnow ? "Let’s practice this again." : feedback.correct ? "Correct" : "Not quite. This card will return later."}</p>{round.question.type === "written" ? <div className="grid gap-3 sm:grid-cols-2"><div><p className="text-xs font-medium uppercase tracking-wide text-muted">Your answer</p><p className="mt-1 whitespace-pre-wrap break-words">{answer || "Don’t Know"}</p></div><div><p className="text-xs font-medium uppercase tracking-wide text-muted">Expected</p><p className="mt-1 whitespace-pre-wrap break-words">Correct answer: {round.question.expected}</p></div></div> : <p className="whitespace-pre-wrap break-words">Correct answer: {round.question.expected}</p>}
-        {round.question.type === "written" && !feedback.correct && !feedback.dontKnow && <Button variant="secondary" disabled={busy} onClick={() => { if (lock.current) return; lock.current = true; setBusy(true); const result = { ...feedback, correct: true }; void saveDraft(`learn:${deck.id}`, { round, answer, feedback: result, direction, choice, written, smart, typos }).then(() => { setFeedback(result); setRetype(null); setError(""); }).catch(() => setError("Could not save your override. Try again.")).finally(() => { lock.current = false; setBusy(false); }); }}>I was correct</Button>}
+        {round.question.type === "written" && !feedback.correct && !feedback.dontKnow && <Button variant="secondary" disabled={busy} onClick={() => { if (lock.current) return; lock.current = true; setBusy(true); const result = { ...feedback, correct: true }; void saveDraft(draftKey, { version: 1, round, answer, feedback: result, retype: null, direction, choice, written, smart, typos, activeMs: activeTimer.read() } satisfies LearnDraft, studyMeta).then(() => { setFeedback(result); setRetype(null); setError(""); }).catch(() => setError("Could not save your override. Try again.")).finally(() => { lock.current = false; setBusy(false); }); }}>I was correct</Button>}
         {round.question.type === "written" && !feedback.correct && <>{retype === null ? <Button variant="secondary" onClick={() => setRetype("")}>Retype Answer</Button> : <div><label className="block text-sm">Retype the correct answer<input className={fieldClass} value={retype} onChange={e => setRetype(e.target.value)} /></label><Button variant="ghost" onClick={() => setRetype(null)}>Skip retyping</Button></div>}<p className="text-sm text-muted">Retyping reinforces the answer; it does not erase this attempt.</p></>}
         <Button type="submit" disabled={busy}>{busy ? "Saving…" : "Continue"}</Button></div>}
     </form>{error && <p role="alert" className="text-danger">{error}</p>}</div>;

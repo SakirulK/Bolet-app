@@ -37,3 +37,16 @@ test('utilities separate normalization, spelling and smart aliases', () => {
   assert.equal(gradeSemanticAnswer('Plants use sunlight to create chemical energy', 'Plants convert light energy into chemical energy'), false);
   assert.equal(calculateSimilarity('mitochondria', 'mitocondria') > .9, true);
 });
+
+for (const options of [exact, typo, smart]) {
+  test(`measurement plurals and pasted whitespace ${JSON.stringify(options)}`, () => {
+    assert.equal(gradeWrittenAnswer('micrograms\n&#x20;', 'microgram', options), true);
+    assert.equal(gradeWrittenAnswer('microgram', 'micrograms', options), true);
+    assert.equal(gradeWrittenAnswer('5 milliliters&nbsp;', '5 milliliter', options), true);
+    assert.equal(gradeWrittenAnswer('micrograms', 'milligram', options), false);
+    assert.equal(gradeWrittenAnswer('10 micrograms', '1 microgram', options), false);
+    assert.equal(gradeWrittenAnswer('gas', 'ga', options), false);
+    assert.equal(gradeWrittenAnswer('lens', 'len', options), false);
+    assert.equal(gradeWrittenAnswer('cells', 'cell', options), false);
+  });
+}

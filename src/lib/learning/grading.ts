@@ -1,6 +1,8 @@
 /** Keep meaningful symbols (+, -, math operators, decimal points) intact. */
 export function normalizeAnswer(value: string): string {
-  return value.normalize("NFKC").toLocaleLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
+  // Pasted/exported answers can contain encoded spaces as well as actual ones.
+  const text = value.replace(/&(?:nbsp|#0*32|#0*160|#x0*20|#x0*a0);/gi, " ");
+  return text.normalize("NFKC").toLocaleLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
     .replace(/["'!?,;:()[\]{}]/g, "").replace(/\.(?=\s|$)/g, "").trim().replace(/\s+/g, " ");
 }
 export function calculateSimilarity(a: string, b: string): number {
@@ -15,10 +17,16 @@ export function calculateSimilarity(a: string, b: string): number {
   }
   return 1 - row[b.length] / Math.max(a.length, b.length);
 }
+// Only known measurement nouns are inflected here. Blindly removing a trailing
+// s would equate unrelated answers (gas/ga, lens/len) or change sentence meaning.
+function normalizeUnitNumber(value: string): string {
+  return value.replace(/\b((?:(?:pico|nano|micro|milli|centi|deci|deca|hecto|kilo|mega|giga)?(?:gram|meter|metre|liter|litre)|second|minute|hour|mole|ampere|kelvin|newton|joule|watt|volt|pascal))s\b/g, "$1");
+}
+
 export function gradeSpelling(answer: string, expected: string, allowMinorSpellingMistakes = false): boolean {
   const a = normalizeAnswer(answer), b = normalizeAnswer(expected);
   if (!a || !b) return false;
-  if (a === b) return true;
+  if (a === b || normalizeUnitNumber(a) === normalizeUnitNumber(b)) return true;
   if (!allowMinorSpellingMistakes || b.length < 5 || a.split(" ").length !== b.split(" ").length) return false;
   // Never blur numbers, negation, or operators. Allow at most one typo per long word,
   // and at most two across an entire answer; short words must be exact.

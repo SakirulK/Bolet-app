@@ -46,9 +46,77 @@ test('offline edit is durable across reload and has a pending outbox entry', asy
   await expect(page.getByRole('heading',{name:'Saved offline',exact:true})).toBeVisible();expect((await records<Card>(page,'cards')).length).toBe(3);expect((await records(page,'syncQueue')).length).toBeGreaterThan(0);await context.setOffline(false);
 });
 
+test('unfinished card import survives app backgrounding and reload', async ({ page }) => {
+  await page.goto('/library');
+  await page.getByRole('button', { name: 'Create deck', exact: true }).click();
+  await page.getByLabel('Title', { exact: true }).fill('Recovered import');
+  await page.getByRole('button', { name: 'Import cards', exact: true }).click();
+  await page.getByLabel('Paste your notes', { exact: true }).fill('Apple\tAn edible fruit\nCPU\tCentral Processing Unit');
+  await page.getByRole('button', { name: 'Preview cards', exact: true }).click();
+  await expect(page.getByText('Preview · 2 cards', { exact: true })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Term', exact: true }).first().fill('Apple fruit');
+  await expect.poll(async () => {
+    const rows = await records<{ id: string; value: string }>(page, 'syncMeta');
+    return rows.filter(row => row.id.startsWith('draft:editor:new')).map(row => row.id).sort();
+  }).toEqual(['draft:editor:new', 'draft:editor:new:import-cards']);
+
+  await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent('pagehide')));
+  await page.reload();
+  await page.getByRole('button', { name: 'Create deck', exact: true }).click();
+  await page.getByRole('button', { name: 'Restore draft', exact: true }).click();
+  await expect(page.getByText('Restored where you left off.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Import cards' }).locator('textarea').first()).toHaveValue('Apple\tAn edible fruit\nCPU\tCentral Processing Unit');
+  await expect(page.getByText('Preview · 2 cards', { exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: 'Term', exact: true }).first()).toHaveValue('Apple fruit');
+  await page.getByRole('button', { name: 'Import 2 cards', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: /^term$/i })).toHaveCount(2);
+  await expect(page.getByRole('textbox', { name: /^term$/i }).nth(0)).toHaveValue('Apple fruit');
+  await page.getByRole('button', { name: 'Create deck', exact: true }).last().click();
+  await expect(page).toHaveURL(/\/library\//);
+  expect((await records<{ id: string }>(page, 'syncMeta')).some(row => row.id.startsWith('draft:editor:new'))).toBe(false);
+});
+
 test('Learn feedback and Test answers recover after refresh without duplicate grading',async({page})=>{
   await seedStudy(page,3);await page.goto('/practice?deck=learn-deck&mode=learn');await page.getByLabel('Shuffle',{exact:true}).uncheck();await page.getByLabel('Multiple Choice',{exact:true}).uncheck();await page.getByRole('button',{name:'Start Learning'}).click();await page.getByRole('textbox',{name:'Your answer',exact:true}).fill('Different');await page.getByRole('button',{name:'Check Answer'}).click();await expect(page.getByRole('button',{name:'I was correct'})).toBeVisible();await page.reload();await page.getByRole('button',{name:'Resume saved Learn session'}).click();await expect(page.getByRole('textbox',{name:'Your answer',exact:true})).toHaveValue('Different');await page.getByRole('button',{name:'I was correct'}).click();await expect(page.getByRole('button',{name:'I was correct'})).toHaveCount(0);await page.reload();await page.getByRole('button',{name:'Resume saved Learn session'}).click();await expect(page.getByText('Correct',{exact:true})).toBeVisible();await page.getByRole('button',{name:'Continue',exact:true}).click();await expect.poll(async()=>(await records(page,'events')).length).toBe(1);
   await page.goto('/practice?deck=learn-deck&mode=test');await page.getByLabel('Multiple Choice',{exact:true}).uncheck();await page.getByRole('button',{name:'Start Test'}).click();await page.getByRole('textbox',{name:'Your answer',exact:true}).fill('My saved answer');await expect.poll(async()=>(await records<{id:string;value:string}>(page,'syncMeta')).some(row=>row.id==='draft:test:learn-deck'&&row.value.includes('My saved answer'))).toBe(true);await page.reload();await page.getByRole('button',{name:'Resume saved Test'}).click();await expect(page.getByRole('textbox',{name:'Your answer',exact:true})).toHaveValue('My saved answer');expect((await records(page,'events')).length).toBe(1);
+});
+
+test('Flashcards, Match and Daily Review restore their exact active state', async ({page}) => {
+  await seedStudy(page, 6);
+  await page.goto('/study/learn-deck');
+  await page.getByRole('button', {name:'Know', exact:true}).click();
+  await expect(page.getByRole('button', {name:'Know', exact:true})).toBeEnabled();
+  await page.getByTestId('flashcard').click();
+  await expect.poll(async () => (await records<{id:string;value:string}>(page,'syncMeta')).some(row => row.id.includes('flashcards-ui:') && row.value.includes('"flipped":true'))).toBe(true);
+  await page.reload(); await page.getByRole('button',{name:'Resume session'}).click();
+  await expect(page.getByTestId('flashcard')).toHaveAttribute('aria-pressed','true');
+  await expect(page.getByText('Restored where you left off.',{exact:true})).toBeVisible();
+
+  await page.goto('/practice?deck=learn-deck&mode=match'); await page.getByRole('button',{name:'Start Match'}).click();
+  const firstTile=page.getByRole('button',{name:/^term:/}).first(); const label=await firstTile.getAttribute('aria-label'); await firstTile.click();
+  await expect.poll(async () => (await records<{id:string;value:string}>(page,'syncMeta')).some(row => row.id==='draft:match:learn-deck' && row.value.includes('"selected"'))).toBe(true);
+  await page.reload(); await page.getByRole('button',{name:'Resume saved Match'}).click();
+  await expect(page.getByRole('button',{name:label!,exact:true})).toHaveAttribute('aria-pressed','true');
+
+  await page.goto('/review'); await page.getByRole('button',{name:'Show Answer'}).click();
+  await expect.poll(async () => (await records<{id:string;value:string}>(page,'syncMeta')).some(row => row.id==='draft:review:daily' && row.value.includes('"flipped":true'))).toBe(true);
+  await page.reload(); await page.getByRole('button',{name:'Resume review'}).click();
+  await expect(page.getByRole('button',{name:'Good',exact:true})).toBeVisible();
+});
+
+test('Home resumes the newest unfinished mode and Library view choices survive refresh', async ({page}) => {
+  await seedStudy(page, 6, 2);
+  await page.goto('/practice?deck=learn-deck&mode=learn'); await page.getByLabel('Multiple Choice',{exact:true}).uncheck(); await page.getByRole('button',{name:'Start Learning'}).click();
+  await page.getByRole('textbox',{name:'Your answer',exact:true}).fill('Unsubmitted local answer');
+  await expect.poll(async () => (await records<{id:string;value:string}>(page,'syncMeta')).some(row => row.id==='draft:learn:learn-deck' && row.value.includes('Unsubmitted local answer'))).toBe(true);
+  await page.goto('/'); await expect(page.getByRole('button',{name:/Resume Learn/})).toBeVisible();
+  await page.getByRole('button',{name:/Resume Learn/}).click(); await expect(page.getByRole('button',{name:'Resume saved Learn session'})).toBeVisible();
+
+  await page.goto('/library'); await page.getByPlaceholder('Search titles, subjects, or descriptions').fill('Practice deck');
+  await page.getByRole('combobox',{name:'Sort'}).selectOption('oldest'); await expect(page.getByText('Practice deck 1',{exact:true})).toBeVisible();
+  await expect.poll(async () => (await records<{id:string;value:string}>(page,'syncMeta')).some(row => row.id==='draft:library-view' && row.value.includes('Practice deck') && row.value.includes('oldest'))).toBe(true);
+  await page.reload(); await expect(page.getByPlaceholder('Search titles, subjects, or descriptions')).toHaveValue('Practice deck');
+  await expect(page.getByRole('combobox',{name:'Sort'})).toHaveValue('oldest'); await expect(page.getByText('Practice deck 1',{exact:true})).toBeVisible();
 });
 
 test('persistent storage is requested once and never described as a backup guarantee',async({page})=>{

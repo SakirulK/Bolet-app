@@ -87,7 +87,7 @@ export function DeckDetail({ deckId }: { deckId: string }) {
               <Bookmark
                 className={cn("h-4 w-4", deck.favorite && "fill-accent text-accent")}
               />
-              {deck.favorite ? "Saved deck" : "Save deck"}
+              {deck.favorite ? "Favorited" : "Favorite"}
             </Button>
             <Button variant="secondary" onClick={() => setEditing(true)}>Edit deck</Button>
             <Button variant="secondary" onClick={() => setSharing(true)}><Share2 className="h-4 w-4" />Share</Button>

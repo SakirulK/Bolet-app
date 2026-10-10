@@ -6,6 +6,7 @@ import { getDb } from '@/lib/db';
 import { cloudRepository, getCloudClient } from '@/data/sync/cloudRepository';
 import { synchronize } from '@/data/sync/syncEngine';
 import { storageProtection } from '@/data/storage';
+import { setDraftOwner } from '@/data/drafts';
 
 type State = {
   user: User | null;
@@ -59,6 +60,9 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       const client = getCloudClient(), current = identity.current;
       if (!client || !current) { setStatus(count ? `${count} changes saved on this device` : 'Saved on this device'); setInitialSyncComplete(true); return; }
       try {
+        // A returning account can use its own cached library while the network catches up.
+        const owner = await db.syncMeta.get('owner');
+        if (owner?.value === current.id && await db.decks.filter(deck => !deck.deletedAt && !deck.purgedAt).count()) setInitialSyncComplete(true);
         setStatus('Saving…'); setError('');
         const result = await synchronize(db, await cloudRepository(client, current.id), current.id, consent);
         setNeedsConsent(result.needsConsent);
@@ -92,19 +96,20 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         const { data } = client.auth.onAuthStateChange((_event, session) => {
           const previousId = identity.current?.id;
           identity.current = session?.user ?? null;
+          setDraftOwner(identity.current?.id);
           setUser(identity.current); setNeedsConsent(false);
           setConsentDeferred(identity.current ? window.localStorage.getItem(consentKey(identity.current.id)) === 'true' : false);
           if (previousId !== identity.current?.id) setMigrationComplete(false);
-          setInitialSyncComplete(!identity.current);
+          if (previousId !== identity.current?.id) setInitialSyncComplete(!identity.current);
           // Leave the Auth callback before issuing another Supabase request.
           setTimeout(() => { void retry().catch(() => undefined); }, 0);
         });
         unsubscribe = () => data.subscription.unsubscribe();
         void client.auth.getSession().then(({ data, error }) => {
           if (error) setError(error.message);
-          identity.current = data.session?.user ?? null; setUser(identity.current);
+          identity.current = data.session?.user ?? null; setDraftOwner(identity.current?.id); setUser(identity.current);
           setConsentDeferred(identity.current ? window.localStorage.getItem(consentKey(identity.current.id)) === 'true' : false);
-          setAuthReady(true); setInitialSyncComplete(!identity.current); void retry().catch(() => undefined);
+          setAuthReady(true); if (!identity.current) setInitialSyncComplete(true); void retry().catch(() => undefined);
         });
       }
     } catch (cause) { setTimeout(() => { setError(String(cause)); setAuthReady(true); setInitialSyncComplete(true); }, 0); }
@@ -137,7 +142,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (identity.current) window.localStorage.removeItem(consentKey(identity.current.id));
       const result = await getCloudClient()?.auth.signOut({ scope: 'local' });
       if (result?.error) throw result.error;
-      identity.current = null; setUser(null); setNeedsConsent(false); setStatus('Signed out — data remains on this device');
+      identity.current = null; setDraftOwner(null); setUser(null); setNeedsConsent(false); setStatus('Signed out — data remains on this device');
       window.localStorage.removeItem(LOCAL_MODE_KEY);
       setContinuedLocal(false); setConsentDeferred(false); setMigrationComplete(false); setInitialSyncComplete(true);
     } finally { stopped.current = false; }

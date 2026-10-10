@@ -1,6 +1,5 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  BookOpen,
   ChartNoAxesColumn,
   House,
   Library,
@@ -16,7 +15,6 @@ export type NavItem = {
 export const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Home", icon: House },
   { href: "/library", label: "Library", icon: Library },
-  { href: "/study", label: "Study", icon: BookOpen },
   { href: "/progress", label: "Progress", icon: ChartNoAxesColumn },
   { href: "/profile", label: "Profile", icon: CircleUserRound },
 ];

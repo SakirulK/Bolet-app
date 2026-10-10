@@ -1,8 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { load } from './load-ts.mjs';
-globalThis.window = {};
+globalThis.window = { dispatchEvent() {} };
+globalThis.CustomEvent ??= class CustomEvent { constructor(type) { this.type = type; } };
 const { RecallDB } = load('src/lib/db.ts');
+const { getDb } = load('src/lib/db.ts');
+const { saveDraft, readDraft, deleteDraft, setDraftOwner, latestStudyDraft } = load('src/data/drafts.ts');
 const { saveDeck, removeDeck, restoreDeck, permanentlyDeleteDeck } = load('src/data/decks.ts');
 const { synchronize } = load('src/data/sync/syncEngine.ts');
 const { applyRemote } = load('src/data/sync/localRepository.ts');
@@ -135,3 +138,25 @@ test('optional fields remain valid after cloud round trips and full backup resto
   for (const card of backup.data.cards) assert.equal(card.acceptedAnswers,undefined);
   await restoreBackup(backup,'merge',a);assert.equal(await a.cards.count(),2);
 }));
+
+test('draft checkpoints are ordered, account scoped, migrate safely and ignore damage', async () => {
+  const db = getDb(); await db.syncMeta.clear(); setDraftOwner(null);
+  await Promise.all([saveDraft('ordered',{value:1}),saveDraft('ordered',{value:2}),saveDraft('ordered',{value:3})]);
+  assert.deepEqual(await readDraft('ordered'),{value:3});
+  await db.syncMeta.put({id:'draft:broken',value:'{not-json'});assert.equal(await readDraft('broken'),null);
+
+  await saveDraft('library-view', {version:1, query:'biology'});
+  await db.syncMeta.put({id:'owner',value:'student-a'});
+  await db.syncMeta.put({id:'draft:legacy',value:JSON.stringify({answer:'kept'})});
+  setDraftOwner('student-a');assert.deepEqual(await readDraft('legacy'),{answer:'kept'});
+  assert.deepEqual(await readDraft('library-view'),{version:1,query:'biology'});
+  assert.equal(await db.syncMeta.get('draft:legacy'),undefined);assert.ok(await db.syncMeta.get('draft:student-a:legacy'));
+  await saveDraft('learn:deck',{answer:'a'},{mode:'learn',deckId:'deck',title:'Deck',href:'/practice?deck=deck&mode=learn'});
+  assert.equal((await latestStudyDraft()).mode,'learn');
+
+  setDraftOwner('student-b');assert.equal(await readDraft('learn:deck'),null);await saveDraft('learn:deck',{answer:'b'});
+  assert.deepEqual(await readDraft('learn:deck'),{answer:'b'});
+  setDraftOwner('student-a');assert.deepEqual(await readDraft('learn:deck'),{answer:'a'});
+  await deleteDraft('learn:deck');assert.equal(await readDraft('learn:deck'),null);
+  setDraftOwner(null);await db.syncMeta.clear();
+});
