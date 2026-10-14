@@ -50,3 +50,22 @@ for (const options of [exact, typo, smart]) {
     assert.equal(gradeWrittenAnswer('cells', 'cell', options), false);
   });
 }
+
+for (const options of [exact, typo, smart, { ...smart, ...typo }]) {
+  test(`separator spacing preserves word boundaries ${JSON.stringify(options)}`, () => {
+    for (const answer of ['micrograms;unsafe', 'micrograms ; unsafe', 'micrograms;\nunsafe', 'micrograms;&#x20;unsafe', 'micrograms；unsafe']) {
+      assert.equal(gradeWrittenAnswer(answer, 'micrograms; unsafe', options), true, answer);
+      assert.equal(gradeWrittenAnswer('micrograms; unsafe', answer, options), true, answer);
+    }
+    for (const separator of [',', ':', '(', ')', '[', ']', ';']) {
+      assert.equal(gradeWrittenAnswer(`alpha${separator}beta`, `alpha${separator} beta`, options), true);
+    }
+    assert.equal(gradeWrittenAnswer('micrograms;safe', 'micrograms; unsafe', options), false);
+    assert.equal(gradeWrittenAnswer('microgramsunsafe', 'micrograms; unsafe', options), false);
+    assert.equal(gradeWrittenAnswer('unsafe;micrograms', 'micrograms; unsafe', options), false);
+    assert.equal(gradeWrittenAnswer('12', '1,2', options), false);
+    assert.equal(gradeWrittenAnswer('12', '1:2', options), false);
+    assert.equal(gradeWrittenAnswer('12', '1.2', options), false);
+    assert.equal(gradeWrittenAnswer('micrograms&#10;unsafe', 'micrograms; unsafe', options), true);
+  });
+}

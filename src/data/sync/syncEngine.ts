@@ -26,6 +26,7 @@ export async function synchronize(db: RecallDB, cloud: CloudRepository, userId: 
       throw error;
     }
   }
-  await applyRemote(db, await cloud.pull());
+  // With no uploads, the first pull already contains the server snapshot.
+  if (pending.length) await applyRemote(db, await cloud.pull());
   return { needsConsent: false };
 }

@@ -67,10 +67,10 @@ function DeckEditor({ onClose, onCreated, deck }: Props) {
     };
     const onVisibilityChange = () => { if (document.visibilityState === "hidden") flush(); };
     document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("pagehide", flush);
+    window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush);
     };
   }, [currentSignature, draftReady, importing, initialSignature, persistDraft, removedCardIds]);
   async function importCards(items: CardInput[]) {

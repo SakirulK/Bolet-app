@@ -160,3 +160,22 @@ test('draft checkpoints are ordered, account scoped, migrate safely and ignore d
   await deleteDraft('learn:deck');assert.equal(await readDraft('learn:deck'),null);
   setDraftOwner(null);await db.syncMeta.clear();
 });
+
+test('idle sync pulls once and does not rewrite unchanged cards or study projections', () => devices(async (a, b, server) => {
+  const id = await saveDeck(input, undefined, a);
+  const card = (await a.cards.toArray())[0];
+  await commitAttempts(newHistory(id, 'Biology', 'learn'), [{ id: 'perf-event', cardId: card.id, correct: true }], false, a);
+  await synchronize(a, server, 'u', true);
+  const before = await a.cards.get(card.id);
+  let pulls = 0, writes = 0;
+  const pull = server.pull;
+  server.pull = async () => { pulls++; return pull(); };
+  const updated = () => { writes++; };
+  a.cards.hook('updating', updated);
+  try { await synchronize(a, server, 'u'); }
+  finally { a.cards.hook('updating').unsubscribe(updated); }
+  assert.equal(pulls, 1);
+  assert.equal(writes, 0);
+  assert.deepEqual(await a.cards.get(card.id), before);
+  assert.equal(await a.syncQueue.count(), 0);
+}));

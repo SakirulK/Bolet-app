@@ -120,6 +120,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (next === signature) return;
       signature = next;
       clearTimeout(debounce);
+      if (!items.length) return;
       debounce = setTimeout(() => { void retry().catch(() => undefined); }, 500);
     });
     const local = liveQuery(async () => (await Promise.all([
@@ -130,7 +131,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     ])).some(Boolean)).subscribe(setLocalData);
     const localWrite = () => { clearTimeout(debounce); debounce = setTimeout(() => { void retry().catch(() => undefined); }, 500); };
     window.addEventListener('bolet-local-write', localWrite);
-    const interval = window.setInterval(() => { void retry().catch(() => undefined); }, 10_000);
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void retry().catch(() => undefined); }, 10_000);
     const online = () => { void retry().catch(() => undefined); };
     window.addEventListener('online', online); window.addEventListener('offline', online); window.addEventListener('focus', online);
     return () => { stopped.current = true; unsubscribe?.(); queue.unsubscribe(); local.unsubscribe(); window.removeEventListener('bolet-local-write', localWrite); clearTimeout(debounce); clearInterval(interval); window.removeEventListener('online', online); window.removeEventListener('offline', online); window.removeEventListener('focus', online); };

@@ -75,10 +75,10 @@ export function ImportCardsDialog({ draftKey, onClose, onImport }: { draftKey: s
     };
     const onVisibilityChange = () => { if (document.visibilityState === "hidden") flush(); };
     document.addEventListener("visibilitychange", onVisibilityChange);
-    window.addEventListener("pagehide", flush);
+    window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
     return () => {
       document.removeEventListener("visibilitychange", onVisibilityChange);
-      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush);
     };
   }, [draftKey, persist]);
 

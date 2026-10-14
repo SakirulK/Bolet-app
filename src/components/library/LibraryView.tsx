@@ -56,8 +56,8 @@ export function LibraryView() {
   useEffect(() => {
     const flush = () => { if (viewReady) void saveDraft("library-view", latestView.current); };
     const hidden = () => { if (document.visibilityState === "hidden") flush(); };
-    window.addEventListener("pagehide", flush); document.addEventListener("visibilitychange", hidden);
-    return () => { window.removeEventListener("pagehide", flush); document.removeEventListener("visibilitychange", hidden); };
+    window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush); document.addEventListener("visibilitychange", hidden);
+    return () => { window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush); document.removeEventListener("visibilitychange", hidden); };
   }, [viewReady]);
   function checkpointView(next: LibraryViewDraft) {
     latestView.current = next;

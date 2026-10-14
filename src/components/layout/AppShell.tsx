@@ -38,12 +38,12 @@ function useScrollRecovery(pathname: string) {
       window.requestAnimationFrame(restore);
     }).catch(() => undefined);
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("pagehide", save);
+    window.addEventListener("pagehide", save); window.addEventListener("brainbo-before-navigate", save);
     document.addEventListener("visibilitychange", onHidden);
     return () => {
       active = false; window.clearTimeout(timer); save();
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("pagehide", save);
+      window.removeEventListener("pagehide", save); window.removeEventListener("brainbo-before-navigate", save);
       document.removeEventListener("visibilitychange", onHidden);
     };
   }, [pathname]);

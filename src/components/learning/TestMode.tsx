@@ -41,8 +41,8 @@ export function TestMode({ deck, initialFilter = "all" }: { deck: Deck; initialF
   useEffect(() => {
     const flush = () => { if (exam && exam.phase !== "results") void saveDraft(draftKey, { version: 1, exam, index, strict, auto, smart, activeMs: activeTimer.read() } satisfies TestDraft, studyMeta); };
     const visibility = () => { if (document.visibilityState === "hidden") flush(); };
-    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
-    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush); };
   }, [activeTimer, auto, draftKey, exam, index, smart, strict, studyMeta]);
   const lock = useRef(false);
   const eligible = filterCards(deck.cards, filter), questionCount = count === "all" ? eligible.length : count === "custom" ? custom : Number(count);

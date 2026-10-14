@@ -70,8 +70,8 @@ export function LearnMode({ deck, initialFilter = "all" }: { deck: Deck; initial
   useEffect(() => {
     const flush = () => { if (round && !round.state.done) void saveDraft(draftKey, { version: 1, round, answer, feedback, retype, direction, choice, written, smart, typos, activeMs: activeTimer.read() } satisfies LearnDraft, studyMeta); };
     const visibility = () => { if (document.visibilityState === "hidden") flush(); };
-    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
-    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush); };
   }, [activeTimer, answer, choice, direction, draftKey, feedback, retype, round, smart, studyMeta, typos, written]);
   async function grade(dontKnow = false) {
     if (!round || feedback || lock.current) return;

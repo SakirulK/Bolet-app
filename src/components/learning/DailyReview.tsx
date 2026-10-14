@@ -43,8 +43,8 @@ function Review({ decks }: { decks: Deck[] }) {
   useEffect(() => {
     const flush = () => { if (ready && index < queue.length && (index > 0 || flipped)) void saveDraft(draftKey, { version: 1, queue, index, flipped, history, activeMs: activeTimer.read() } satisfies ReviewDraft, studyMeta); };
     const visibility = () => { if (document.visibilityState === "hidden") flush(); };
-    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
-    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush); };
   }, [activeTimer, draftKey, flipped, history, index, queue, ready, studyMeta]);
   async function rate(rating: Rating) {
     if (!card || lock.current) return;

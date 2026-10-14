@@ -1,9 +1,12 @@
 /** Keep meaningful symbols (+, -, math operators, decimal points) intact. */
 export function normalizeAnswer(value: string): string {
   // Pasted/exported answers can contain encoded spaces as well as actual ones.
-  const text = value.replace(/&(?:nbsp|#0*32|#0*160|#x0*20|#x0*a0);/gi, " ");
+  const text = value.replace(/&(?:nbsp|#0*(?:9|10|13|32|160)|#x0*(?:9|a|d|20|a0));/gi, " ");
   return text.normalize("NFKC").toLocaleLowerCase().replace(/[‘’]/g, "'").replace(/[“”]/g, '"')
-    .replace(/["'!?,;:()[\]{}]/g, "").replace(/\.(?=\s|$)/g, "").trim().replace(/\s+/g, " ");
+    .replace(/["']/g, "")
+    // Separators mark word boundaries even when pasted without surrounding spaces.
+    // Keep numeric commas and colons: 1,2 and 1:2 must not turn into 12 or 1 2.
+    .replace(/(?<!\d)[,:]|[,:](?!\d)|[!?;()[\]{}]/g, " ").replace(/\.(?=\s|$)/g, "").trim().replace(/\s+/g, " ");
 }
 export function calculateSimilarity(a: string, b: string): number {
   if (a === b) return 1;

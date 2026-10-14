@@ -33,15 +33,15 @@ export function StudySession({ deckId, ids, filter = "all" }: { deckId: string; 
     if (!ready) return () => { active = false; };
     const recoveryKey = `${deckId}:${ids?.join(",") ?? ""}:${filter}`;
     if (checkedRecovery.current === recoveryKey) return () => { active = false; };
-    checkedRecovery.current = recoveryKey;
     if (ids || filter !== "all") {
-      void Promise.resolve().then(() => { if (active) setRecovery(null); });
+      void Promise.resolve().then(() => { if (active) { checkedRecovery.current = recoveryKey; setRecovery(null); } });
       return () => { active = false; };
     }
     const deck = decks.find(item => item.id === deckId);
     void getDb().sessions.where("deckId").equals(deckId).filter(item => !item.endedAt && item.correct + item.incorrect > 0).reverse().sortBy("updatedAt")
       .then(items => {
         if (!active) return;
+        checkedRecovery.current = recoveryKey;
         const validIds = new Set(deck?.cards.map(card => card.id) ?? []);
         const saved = items.find(item => item.queue.some(id => validIds.has(id)));
         setRecovery(saved ? {
@@ -52,7 +52,7 @@ export function StudySession({ deckId, ids, filter = "all" }: { deckId: string; 
           missedIds: saved.missedIds.filter(id => validIds.has(id)),
         } : null);
       })
-      .catch(() => { if (active) setRecovery(null); });
+      .catch(() => { if (active) { checkedRecovery.current = recoveryKey; setRecovery(null); } });
     return () => { active = false; };
   }, [deckId, decks, filter, ids, ready]);
   if (!ready) return <ScreenSkeleton />;
@@ -105,8 +105,8 @@ function Session({ deck, initialFilter, initialSession }: { deck: Deck; initialF
   useEffect(() => {
     const flush = () => { if (uiReady && !session.endedAt) void saveDraft(uiDraftKey, { version: 1, sessionId: session.id, revision: session.revision, flipped, browseHistory } satisfies FlashcardUiDraft); };
     const visibility = () => { if (document.visibilityState === "hidden") flush(); };
-    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
-    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush); };
   }, [browseHistory, flipped, session.endedAt, session.id, session.revision, uiDraftKey, uiReady]);
   let hash = 2166136261;
   for (const char of `${session.id}-${session.revision}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);

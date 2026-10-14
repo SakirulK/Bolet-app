@@ -22,8 +22,16 @@ export function MatchMode({ deck, initialFilter = "all" }: { deck: Deck; initial
   const draftKey = `match:${deck.id}`;
   const studyMeta = useMemo(() => ({ mode: "match" as const, deckId: deck.id, title: deck.title, href: studyUrl(deck.id, "match") }), [deck.id, deck.title]);
   const elapsed = useElapsed(game?.history.startedAt ?? 0, !game || game.done);
-  const eligible = filterCards(deck.cards, filter);
-  const playable = eligible.filter(card => eligible.filter(other => other.term.trim().toLocaleLowerCase() === card.term.trim().toLocaleLowerCase()).length === 1 && eligible.filter(other => other.definition.trim().toLocaleLowerCase() === card.definition.trim().toLocaleLowerCase()).length === 1);
+  const eligible = useMemo(() => filterCards(deck.cards, filter), [deck.cards, filter]);
+  const playable = useMemo(() => {
+    const terms = new Map<string, number>(), definitions = new Map<string, number>();
+    const key = (text: string) => text.trim().toLocaleLowerCase();
+    for (const card of eligible) {
+      terms.set(key(card.term), (terms.get(key(card.term)) ?? 0) + 1);
+      definitions.set(key(card.definition), (definitions.get(key(card.definition)) ?? 0) + 1);
+    }
+    return eligible.filter(card => terms.get(key(card.term)) === 1 && definitions.get(key(card.definition)) === 1);
+  }, [eligible]);
   const omitted = eligible.length - playable.length;
   const count = pairs === "all" ? Math.min(12, playable.length) : Math.min(Number(pairs), playable.length);
   useEffect(() => { void readDraft<MatchDraft>(draftKey).then(draft => {
@@ -32,8 +40,8 @@ export function MatchMode({ deck, initialFilter = "all" }: { deck: Deck; initial
   useEffect(() => {
     const flush = () => { if (game && !game.done) void saveDraft(draftKey, { version: 1, game, activeMs: activeTimer.read() } satisfies MatchDraft, studyMeta); };
     const visibility = () => { if (document.visibilityState === "hidden") flush(); };
-    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush);
-    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); };
+    document.addEventListener("visibilitychange", visibility); window.addEventListener("pagehide", flush); window.addEventListener("brainbo-before-navigate", flush);
+    return () => { document.removeEventListener("visibilitychange", visibility); window.removeEventListener("pagehide", flush); window.removeEventListener("brainbo-before-navigate", flush); };
   }, [activeTimer, draftKey, game, studyMeta]);
   function start() {
     if (!eligible.length) return;

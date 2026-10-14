@@ -64,7 +64,7 @@ test('unfinished card import survives app backgrounding and reload', async ({ pa
   await page.reload();
   await page.getByRole('button', { name: 'Create deck', exact: true }).click();
   await page.getByRole('button', { name: 'Restore draft', exact: true }).click();
-  await expect(page.getByText('Restored where you left off.', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog', { name: 'Import cards' }).getByText('Restored where you left off.', { exact: true })).toBeVisible();
   await expect(page.getByRole('dialog', { name: 'Import cards' }).locator('textarea').first()).toHaveValue('Apple\tAn edible fruit\nCPU\tCentral Processing Unit');
   await expect(page.getByText('Preview · 2 cards', { exact: true })).toBeVisible();
   await expect(page.getByRole('textbox', { name: 'Term', exact: true }).first()).toHaveValue('Apple fruit');

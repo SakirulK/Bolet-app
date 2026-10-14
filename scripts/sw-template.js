@@ -14,6 +14,14 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       const cache = await caches.open(CACHE);
+      // These pages are app shells: personal data comes from IndexedDB after
+      // hydration. Keep the shell and its assets on the same installed build.
+      // A new service-worker install updates them atomically.
+      const shellRoutes = ['/', '/library', '/study', '/progress', '/settings', '/practice', '/review', '/install', '/offline'];
+      const dynamicStudy = /^\/(study|library)\/.+/.test(url.pathname);
+      const shell = dynamicStudy ? await cache.match('/offline')
+        : shellRoutes.includes(url.pathname) ? await cache.match(url.pathname) : undefined;
+      if (shell) return shell;
       try { const response = await fetch(request); if (response.ok) await cache.put(request, response.clone()); return response; }
       catch {
         const exact = await cache.match(request);
